@@ -1,0 +1,15 @@
+# Entorno virtual
+.venv/
+
+# Credenciales privadas
+CREDENCIALES/
+
+# Archivos Python temporales
+__pycache__/
+*.pyc
+
+# Variables de entorno
+.env
+
+# Archivos temporales
+*.log
