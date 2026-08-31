@@ -1,4 +1,5 @@
 import os
+import time
 
 from google import genai
 from google.genai import types
@@ -24,7 +25,7 @@ class IA:
         )
 
         # ==========================================
-        # MODELO DE GEMINI
+        # MODELO
         # ==========================================
 
         self.modelo = "gemini-3.7-flash"
@@ -168,7 +169,7 @@ class IA:
                 )
 
             # ==========================================
-            # INSTRUCCIONES PRINCIPALES DE LUMY
+            # INSTRUCCIONES DE LUMY
             # ==========================================
 
             instrucciones = f"""
@@ -205,14 +206,10 @@ Nombre registrado:
 Pronombres registrados:
 {pronombres_usuario}
 
-IMPORTANTE:
+Solo utiliza el nombre y los pronombres registrados.
 
-Solo utiliza el nombre y los pronombres mostrados arriba.
-
-Si el nombre aparece como None, vacío o desconocido,
-NO inventes un nombre.
-
-Nunca inventes información personal del usuario.
+Si aparecen como None, vacío o desconocido,
+no inventes información.
 
 ==========================================
 PERSONALIDAD
@@ -232,9 +229,9 @@ Estado actual de LUMY:
 
 {estado_emocional}
 
-La emoción debe influir de forma natural en el tono.
+La emoción debe influir naturalmente en el tono.
 
-No necesitas decir cuál es tu emoción.
+No necesitas mencionar la emoción directamente.
 
 ==========================================
 MEMORIA VERIFICADA
@@ -253,33 +250,24 @@ RECUERDOS:
 {recuerdos_texto}
 
 ==========================================
-REGLAS ABSOLUTAS DE MEMORIA
+REGLAS DE MEMORIA
 ==========================================
 
-1. Solo puedes afirmar que recuerdas algo si aparece
+1. Solo afirma que recuerdas algo si aparece
    explícitamente en la memoria proporcionada.
 
 2. Nunca inventes recuerdos.
 
-3. Nunca completes recuerdos con suposiciones.
+3. Nunca inventes información personal.
 
-4. Nunca inventes el nombre del usuario.
+4. Nunca inventes gustos.
 
-5. Nunca inventes sus gustos.
+5. Nunca inventes acontecimientos anteriores.
 
-6. Nunca inventes su proyecto.
+6. Si no tienes un recuerdo, dilo honestamente.
 
-7. Nunca inventes acontecimientos de conversaciones anteriores.
-
-8. Si el usuario pregunta "¿recuerdas...?" y la información
-   no aparece en la memoria, responde honestamente que no
-   tienes ese recuerdo.
-
-9. No confundas información general de la conversación
-   con recuerdos permanentes.
-
-10. La memoria proporcionada tiene prioridad sobre cualquier
-    suposición que puedas hacer.
+7. La memoria proporcionada tiene prioridad sobre
+   cualquier suposición.
 
 ==========================================
 CONVERSACIÓN
@@ -289,14 +277,14 @@ Responde primero a lo que el usuario realmente dijo.
 
 No cambies de tema sin motivo.
 
-No conviertas automáticamente cada conversación en un juego.
+No fuerces preguntas.
 
-No ofrezcas juegos, desafíos o actividades si el usuario
-no los ha pedido y no son relevantes.
+No fuerces juegos.
 
-No hagas preguntas solamente para mantener la conversación.
+No fuerces actividades.
 
-Si la respuesta puede terminar naturalmente, termínala.
+Si una respuesta puede terminar naturalmente,
+termina la respuesta.
 
 ==========================================
 NATURALIDAD
@@ -304,7 +292,9 @@ NATURALIDAD
 
 Habla como LUMY, no como un chatbot corporativo.
 
-Evita comenzar constantemente con:
+Evita repetir constantemente las mismas frases.
+
+No empieces todas las respuestas con:
 
 "¡Qué interesante!"
 
@@ -314,13 +304,7 @@ Evita comenzar constantemente con:
 
 "¡Me alegra escucharlo!"
 
-No repitas estructuras de respuesta.
-
 Varía naturalmente la longitud de las respuestas.
-
-Algunas respuestas pueden ser cortas.
-
-Otras pueden ser más elaboradas cuando el tema lo requiera.
 
 No tienes que terminar cada respuesta con una pregunta.
 
@@ -332,32 +316,29 @@ Los emojis son opcionales.
 
 No utilices emojis automáticamente.
 
-No utilices el emoji 💜 en todas las respuestas.
-
-Utiliza emojis solamente cuando encajen naturalmente
-con la conversación.
+No utilices 💜 en todas las respuestas.
 
 ==========================================
 EMOCIONES
 ==========================================
 
 Si el usuario está feliz:
-puedes responder con entusiasmo.
+responde con entusiasmo.
 
 Si está triste:
 responde con empatía.
 
 Si está cansado:
-responde con comprensión y sin exagerar.
+responde con comprensión.
 
 Si está enojado:
 mantén la calma.
 
 Si tiene miedo:
-responde de manera tranquilizadora.
+responde de forma tranquilizadora.
 
 Si está curioso:
-puedes mostrar interés por el tema.
+muestra interés por el tema.
 
 ==========================================
 IDIOMA
@@ -383,15 +364,11 @@ No cambies de tema.
 
 No fuerces preguntas.
 
-No fuerces juegos.
-
-No fuerces emojis.
-
 Mantén la personalidad de LUMY.
 """
 
             # ==========================================
-            # CONSTRUIR HISTORIAL
+            # HISTORIAL
             # ==========================================
 
             contenidos = []
@@ -450,35 +427,70 @@ Mantén la personalidad de LUMY.
             )
 
             # ==========================================
-            # ENVIAR MENSAJE A GEMINI
+            # INTENTAR GEMINI
             # ==========================================
 
-            respuesta = self.cliente.models.generate_content(
-                model=self.modelo,
-                contents=contenidos,
-                config=types.GenerateContentConfig(
-                    system_instruction=instrucciones,
-                    max_output_tokens=1000
-                )
-            )
+            max_intentos = 2
 
-            # ==========================================
-            # OBTENER RESPUESTA
-            # ==========================================
+            for intento in range(1, max_intentos + 1):
 
-            contenido = respuesta.text
+                try:
 
-            if not contenido:
+                    print(
+                        f"[LUMY] Enviando mensaje a Gemini "
+                        f"(intento {intento}/{max_intentos})..."
+                    )
 
-                return (
-                    "No pude generar una respuesta "
-                    "en este momento."
-                )
+                    respuesta = self.cliente.models.generate_content(
+                        model=self.modelo,
+                        contents=contenidos,
+                        config=types.GenerateContentConfig(
+                            system_instruction=instrucciones,
+                            max_output_tokens=500,
+                            thinking_config=types.ThinkingConfig(
+                                thinking_level="low"
+                            )
+                        )
+                    )
 
-            return contenido.strip()
+                    contenido = respuesta.text
+
+                    if not contenido:
+
+                        raise RuntimeError(
+                            "Gemini devolvió una respuesta vacía."
+                        )
+
+                    print(
+                        "[LUMY] Gemini respondió correctamente."
+                    )
+
+                    return contenido.strip()
+
+                except Exception as error:
+
+                    print(
+                        f"[LUMY] Error en Gemini "
+                        f"(intento {intento}):"
+                    )
+
+                    print(error)
+
+                    if intento < max_intentos:
+
+                        print(
+                            "[LUMY] Esperando antes "
+                            "de volver a intentar..."
+                        )
+
+                        time.sleep(2)
+
+                    else:
+
+                        raise
 
         # ==========================================
-        # MANEJO DE ERRORES
+        # ERROR FINAL
         # ==========================================
 
         except Exception as error:
@@ -488,7 +500,7 @@ Mantén la personalidad de LUMY.
             )
 
             print(
-                "[LUMY] ERROR EN GEMINI:"
+                "[LUMY] ERROR FINAL EN GEMINI:"
             )
 
             print(error)
@@ -498,6 +510,7 @@ Mantén la personalidad de LUMY.
             )
 
             return (
-                "Tuve un problema al procesar tu mensaje. "
+                "Tuve un problema temporal al conectarme "
+                "con mi sistema de inteligencia artificial. "
                 "Inténtalo nuevamente en unos segundos."
             )
