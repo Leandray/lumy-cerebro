@@ -8,6 +8,58 @@ class Respuesta:
         self.ia = IA()
         self.busqueda_web = BusquedaWeb()
 
+    # ==================================================
+    # DETECTAR SI NECESITA BÚSQUEDA WEB
+    # ==================================================
+
+    def necesita_busqueda_web(self, mensaje):
+
+        mensaje_lower = mensaje.lower().strip()
+
+        indicadores = [
+            "hoy",
+            "ahora",
+            "actualmente",
+            "actual",
+            "actuales",
+            "recientemente",
+            "reciente",
+            "últimas noticias",
+            "ultimas noticias",
+            "noticias de hoy",
+            "qué pasó hoy",
+            "que paso hoy",
+            "qué está pasando",
+            "que esta pasando",
+            "clima",
+            "temperatura",
+            "precio actual",
+            "precios actuales",
+            "cotización",
+            "cotizacion",
+            "resultado de hoy",
+            "resultados de hoy",
+            "último partido",
+            "ultimo partido",
+            "últimos resultados",
+            "ultimos resultados",
+            "versión más reciente",
+            "version mas reciente",
+            "modelo más reciente",
+            "modelo mas reciente"
+        ]
+
+        for indicador in indicadores:
+
+            if indicador in mensaje_lower:
+                return True
+
+        return False
+
+    # ==================================================
+    # GENERAR RESPUESTA
+    # ==================================================
+
     def generar(
         self,
         mensaje,
@@ -406,7 +458,7 @@ class Respuesta:
                 "Estaré aquí cuando vuelvas."
             )
 
-                # ==================================================
+        # ==================================================
         # BÚSQUEDA WEB
         # ==================================================
 
@@ -440,7 +492,8 @@ Estos son los resultados encontrados:
 {contexto_web}
 
 Utiliza estos resultados como fuente de información.
-Responde al usuario de forma natural y clara.
+
+Responde al usuario de forma natural, clara y útil.
 
 No inventes información que no aparezca en los resultados
 ni en tu conocimiento confiable.
@@ -474,51 +527,3 @@ indica honestamente que no encontraste suficiente información.
         )
 
         return respuesta
-
-    # ==================================================
-    # DETECTAR SI NECESITA BÚSQUEDA WEB
-    # ==================================================
-
-    def necesita_busqueda_web(self, mensaje):
-
-        mensaje_lower = mensaje.lower().strip()
-
-        indicadores = [
-            "hoy",
-            "ahora",
-            "actualmente",
-            "actual",
-            "actuales",
-            "recientemente",
-            "reciente",
-            "últimas noticias",
-            "ultimas noticias",
-            "noticias de hoy",
-            "qué pasó hoy",
-            "que paso hoy",
-            "qué está pasando",
-            "que esta pasando",
-            "clima",
-            "temperatura",
-            "precio actual",
-            "precios actuales",
-            "cotización",
-            "cotizacion",
-            "resultado de hoy",
-            "resultados de hoy",
-            "último partido",
-            "ultimo partido",
-            "últimos resultados",
-            "ultimos resultados",
-            "versión más reciente",
-            "version mas reciente",
-            "modelo más reciente",
-            "modelo mas reciente"
-        ]
-
-        for indicador in indicadores:
-
-            if indicador in mensaje_lower:
-                return True
-
-        return False
