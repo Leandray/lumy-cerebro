@@ -1,10 +1,12 @@
 from ia.ia import IA
+from busqueda_web import BusquedaWeb
 
 
 class Respuesta:
 
     def __init__(self):
         self.ia = IA()
+        self.busqueda_web = BusquedaWeb()
 
     def generar(
         self,
@@ -404,6 +406,62 @@ class Respuesta:
                 "Estaré aquí cuando vuelvas."
             )
 
+                # ==================================================
+        # BÚSQUEDA WEB
+        # ==================================================
+
+        if self.necesita_busqueda_web(mensaje):
+
+            print(
+                "[LUMY] La pregunta requiere información actual."
+            )
+
+            resultados = self.busqueda_web.buscar(
+                mensaje
+            )
+
+            if resultados:
+
+                contexto_web = (
+                    self.busqueda_web.formatear_resultados(
+                        resultados
+                    )
+                )
+
+                mensaje_con_web = f"""
+El usuario realizó la siguiente pregunta:
+
+{mensaje}
+
+Se realizó una búsqueda web para obtener información actual.
+
+Estos son los resultados encontrados:
+
+{contexto_web}
+
+Utiliza estos resultados como fuente de información.
+Responde al usuario de forma natural y clara.
+
+No inventes información que no aparezca en los resultados
+ni en tu conocimiento confiable.
+
+Si los resultados no permiten responder con seguridad,
+indica honestamente que no encontraste suficiente información.
+"""
+
+                respuesta = self.ia.generar(
+                    mensaje_con_web,
+                    personalidad,
+                    emociones,
+                    memoria
+                )
+
+                return respuesta
+
+            print(
+                "[LUMY] La búsqueda no devolvió resultados."
+            )
+
         # ==================================================
         # IA REAL
         # ==================================================
@@ -416,3 +474,51 @@ class Respuesta:
         )
 
         return respuesta
+
+    # ==================================================
+    # DETECTAR SI NECESITA BÚSQUEDA WEB
+    # ==================================================
+
+    def necesita_busqueda_web(self, mensaje):
+
+        mensaje_lower = mensaje.lower().strip()
+
+        indicadores = [
+            "hoy",
+            "ahora",
+            "actualmente",
+            "actual",
+            "actuales",
+            "recientemente",
+            "reciente",
+            "últimas noticias",
+            "ultimas noticias",
+            "noticias de hoy",
+            "qué pasó hoy",
+            "que paso hoy",
+            "qué está pasando",
+            "que esta pasando",
+            "clima",
+            "temperatura",
+            "precio actual",
+            "precios actuales",
+            "cotización",
+            "cotizacion",
+            "resultado de hoy",
+            "resultados de hoy",
+            "último partido",
+            "ultimo partido",
+            "últimos resultados",
+            "ultimos resultados",
+            "versión más reciente",
+            "version mas reciente",
+            "modelo más reciente",
+            "modelo mas reciente"
+        ]
+
+        for indicador in indicadores:
+
+            if indicador in mensaje_lower:
+                return True
+
+        return False
