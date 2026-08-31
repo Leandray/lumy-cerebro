@@ -54,10 +54,12 @@ class Memoria:
 
         if identidad:
 
-            self.usuario["nombre"] = identidad.get("name")
+            self.usuario["nombre"] = identidad.get(
+                "name"
+            )
 
             self.usuario["pronombres"] = identidad.get(
-                "pronombres"
+                "pronouns"
             )
 
         # ==========================================
@@ -98,13 +100,19 @@ class Memoria:
         pronombres=None
     ):
 
-        if nombre:
+        if nombre is not None:
 
-            self.usuario["nombre"] = nombre.strip()
+            nombre = nombre.strip()
 
-        if pronombres:
+            if nombre:
+                self.usuario["nombre"] = nombre
 
-            self.usuario["pronombres"] = pronombres.strip()
+        if pronombres is not None:
+
+            pronombres = pronombres.strip()
+
+            if pronombres:
+                self.usuario["pronombres"] = pronombres
 
         self.firebase.guardar_identidad(
             nombre=self.usuario["nombre"],

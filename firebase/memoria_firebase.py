@@ -4,6 +4,7 @@ from firebase.firebase import db
 class FirebaseMemoria:
 
     def __init__(self, uid):
+
         self.uid = uid
 
         self.usuario_ref = (
@@ -23,7 +24,10 @@ class FirebaseMemoria:
 
         datos = documento.to_dict()
 
-        return datos.get("memory", {})
+        return datos.get(
+            "memory",
+            {}
+        )
 
     # ==========================================
     # GUARDAR MEMORIA
@@ -50,11 +54,11 @@ class FirebaseMemoria:
 
         identidad = {}
 
-        if nombre:
+        if nombre is not None:
             identidad["name"] = nombre
 
-        if pronombres:
-            identidad["pronombres"] = pronombres
+        if pronombres is not None:
+            identidad["pronouns"] = pronombres
 
         if identidad:
 
@@ -78,4 +82,7 @@ class FirebaseMemoria:
 
         datos = documento.to_dict()
 
-        return datos.get("identity", {})
+        return datos.get(
+            "identity",
+            {}
+        )
