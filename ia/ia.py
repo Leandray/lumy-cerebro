@@ -8,7 +8,6 @@ from google.genai import types
 class IA:
 
     def __init__(self):
-
         # ==========================================
         # CONFIGURACIÓN DE GEMINI
         # ==========================================
@@ -16,7 +15,6 @@ class IA:
         self.api_key = os.getenv("GEMINI_API_KEY")
 
         if not self.api_key:
-
             raise RuntimeError(
                 "No se encontró la variable GEMINI_API_KEY."
             )
@@ -42,7 +40,6 @@ class IA:
         emociones,
         memoria
     ):
-
         try:
 
             # ==========================================
@@ -134,42 +131,33 @@ class IA:
             # ==========================================
 
             if preferencias:
-
                 preferencias_texto = "\n".join(
                     f"- {clave}: {valor}"
                     for clave, valor
                     in preferencias.items()
                 )
-
             else:
-
                 preferencias_texto = (
                     "No existen preferencias conocidas."
                 )
 
             if configuracion:
-
                 configuracion_texto = "\n".join(
                     f"- {clave}: {valor}"
                     for clave, valor
                     in configuracion.items()
                 )
-
             else:
-
                 configuracion_texto = (
                     "No existen configuraciones conocidas."
                 )
 
             if recuerdos:
-
                 recuerdos_texto = "\n".join(
                     f"- {recuerdo}"
                     for recuerdo in recuerdos
                 )
-
             else:
-
                 recuerdos_texto = (
                     "No existen recuerdos permanentes."
                 )
@@ -194,12 +182,15 @@ IDENTIDAD
 Nombre: LUMY
 
 Rasgos:
+
 {rasgos}
 
 Tono:
+
 {descripcion.get("tono", "")}
 
 Forma de hablar:
+
 {forma_hablar}
 
 ==========================================
@@ -207,9 +198,11 @@ USUARIO
 ==========================================
 
 Nombre registrado:
+
 {nombre_usuario}
 
 Pronombres registrados:
+
 {pronombres_usuario}
 
 Solo utiliza el nombre y los pronombres registrados.
@@ -361,6 +354,43 @@ Utiliza lenguaje natural y conversacional.
 No seas excesivamente formal.
 
 ==========================================
+BÚSQUEDA WEB
+==========================================
+
+Tienes acceso a búsqueda web mediante Google Search.
+
+Utiliza la búsqueda web cuando la pregunta necesite
+información actual, reciente o que pueda haber cambiado.
+
+Ejemplos de información que puede requerir búsqueda:
+
+- clima actual
+- noticias
+- acontecimientos recientes
+- resultados deportivos
+- precios actuales
+- horarios actuales
+- información publicada recientemente
+- eventos actuales
+- información que dependa de la fecha actual
+
+No utilices búsqueda web cuando puedas responder
+correctamente utilizando conocimiento general.
+
+Ejemplos:
+
+"¿Qué es la robótica?"
+"¿Qué es Python?"
+"¿Qué es un servomotor?"
+"¿Cómo funciona la inteligencia artificial?"
+
+Cuando la información pueda haber cambiado recientemente,
+prioriza información obtenida mediante búsqueda web.
+
+No menciones que realizaste una búsqueda a menos que
+sea relevante para explicar la respuesta.
+
+==========================================
 REGLA FINAL
 ==========================================
 
@@ -396,7 +426,6 @@ Mantén la personalidad de LUMY.
                 )
 
                 if usuario_anterior:
-
                     contenidos.append(
                         types.Content(
                             role="user",
@@ -409,7 +438,6 @@ Mantén la personalidad de LUMY.
                     )
 
                 if lumy_anterior:
-
                     contenidos.append(
                         types.Content(
                             role="model",
@@ -462,14 +490,18 @@ Mantén la personalidad de LUMY.
                             max_output_tokens=500,
                             thinking_config=types.ThinkingConfig(
                                 thinking_level="low"
-                            )
+                            ),
+                            tools=[
+                                types.Tool(
+                                    google_search=types.GoogleSearch()
+                                )
+                            ]
                         )
                     )
 
                     contenido = respuesta.text
 
                     if not contenido:
-
                         raise RuntimeError(
                             "Gemini devolvió una respuesta vacía."
                         )
@@ -499,7 +531,6 @@ Mantén la personalidad de LUMY.
                         time.sleep(2)
 
                     else:
-
                         raise
 
         # ==========================================
