@@ -1,64 +1,10 @@
 from ia.ia import IA
-from busqueda_web import BusquedaWeb
 
 
 class Respuesta:
 
     def __init__(self):
         self.ia = IA()
-        self.busqueda_web = BusquedaWeb()
-
-    # ==================================================
-    # DETECTAR SI NECESITA BÚSQUEDA WEB
-    # ==================================================
-
-    def necesita_busqueda_web(self, mensaje):
-
-        mensaje_lower = mensaje.lower().strip()
-
-        indicadores = [
-            "hoy",
-            "ahora",
-            "actualmente",
-            "actual",
-            "actuales",
-            "recientemente",
-            "reciente",
-            "últimas noticias",
-            "ultimas noticias",
-            "noticias de hoy",
-            "qué pasó hoy",
-            "que paso hoy",
-            "qué está pasando",
-            "que esta pasando",
-            "clima",
-            "temperatura",
-            "precio actual",
-            "precios actuales",
-            "cotización",
-            "cotizacion",
-            "resultado de hoy",
-            "resultados de hoy",
-            "último partido",
-            "ultimo partido",
-            "últimos resultados",
-            "ultimos resultados",
-            "versión más reciente",
-            "version mas reciente",
-            "modelo más reciente",
-            "modelo mas reciente"
-        ]
-
-        for indicador in indicadores:
-
-            if indicador in mensaje_lower:
-                return True
-
-        return False
-
-    # ==================================================
-    # GENERAR RESPUESTA
-    # ==================================================
 
     def generar(
         self,
@@ -100,38 +46,136 @@ class Respuesta:
         )
 
         # ==================================================
-        # GUARDAR NOMBRE
+        # IDENTIDAD — CAMBIAR NOMBRE
         # ==================================================
 
-        if mensaje_lower.startswith("me llamo "):
+        patrones_nombre = [
+            "me llamo ",
+            "mi nombre es ",
+            "quiero que me llames ",
+            "quiero que me digas "
+        ]
 
-            nuevo_nombre = mensaje[9:].strip()
+        for patron in patrones_nombre:
 
-            if nuevo_nombre:
+            if mensaje_lower.startswith(patron):
 
-                memoria.establecer_usuario(
-                    nombre=nuevo_nombre
-                )
+                nuevo_nombre = mensaje[len(patron):].strip()
 
-                emociones.modificar(
-                    "felicidad",
-                    5
-                )
+                if nuevo_nombre:
 
-                return (
-                    f"¡Mucho gusto, {nuevo_nombre}! 💜 "
-                    "Ahora sí sé cómo llamarte y lo recordaré."
-                )
+                    memoria.establecer_usuario(
+                        nombre=nuevo_nombre
+                    )
+
+                    emociones.modificar(
+                        "felicidad",
+                        5
+                    )
+
+                    return (
+                        f"Entendido. A partir de ahora te llamaré "
+                        f"{nuevo_nombre}."
+                    )
 
         # ==================================================
-        # GUARDAR PRONOMBRES
+        # IDENTIDAD — CAMBIAR PRONOMBRES
         # ==================================================
 
-        if "mis pronombres son" in mensaje_lower:
+        # --------------------------------------------------
+        # PRONOMBRES MASCULINOS
+        # --------------------------------------------------
+
+        patrones_masculinos = [
+            "mis pronombres son masculinos",
+            "mis pronombres son masculino",
+            "mis pronombres son él",
+            "mis pronombres son el",
+            "quiero que uses pronombres masculinos conmigo",
+            "quiero que uses pronombres masculino conmigo",
+            "quiero que uses pronombres él conmigo",
+            "quiero que uses pronombres el conmigo"
+        ]
+
+        if any(
+            patron in mensaje_lower
+            for patron in patrones_masculinos
+        ):
+
+            memoria.establecer_usuario(
+                pronombres="masculinos"
+            )
+
+            return (
+                "Entendido. Usaré pronombres masculinos "
+                "contigo a partir de ahora."
+            )
+
+        # --------------------------------------------------
+        # PRONOMBRES FEMENINOS
+        # --------------------------------------------------
+
+        patrones_femeninos = [
+            "mis pronombres son femeninos",
+            "mis pronombres son femenino",
+            "mis pronombres son ella",
+            "quiero que uses pronombres femeninos conmigo",
+            "quiero que uses pronombres femenino conmigo",
+            "quiero que uses pronombres ella conmigo"
+        ]
+
+        if any(
+            patron in mensaje_lower
+            for patron in patrones_femeninos
+        ):
+
+            memoria.establecer_usuario(
+                pronombres="femeninos"
+            )
+
+            return (
+                "Entendido. Usaré pronombres femeninos "
+                "contigo a partir de ahora."
+            )
+
+        # --------------------------------------------------
+        # PRONOMBRES NEUTROS
+        # --------------------------------------------------
+
+        patrones_neutros = [
+            "mis pronombres son neutros",
+            "mis pronombres son neutro",
+            "mis pronombres son elle",
+            "quiero que uses pronombres neutros conmigo",
+            "quiero que uses pronombres neutro conmigo",
+            "quiero que uses pronombres elle conmigo"
+        ]
+
+        if any(
+            patron in mensaje_lower
+            for patron in patrones_neutros
+        ):
+
+            memoria.establecer_usuario(
+                pronombres="neutros"
+            )
+
+            return (
+                "Entendido. Usaré pronombres neutros "
+                "contigo a partir de ahora."
+            )
+
+        # --------------------------------------------------
+        # FORMATO PERSONALIZADO
+        # --------------------------------------------------
+
+        if mensaje_lower.startswith(
+            "mis pronombres son "
+        ):
 
             inicio = mensaje_lower.find(
-                "mis pronombres son"
-            ) + len("mis pronombres son")
+                "mis pronombres son "
+            ) + len("mis pronombres son ")
 
             nuevos_pronombres = mensaje[inicio:].strip()
 
@@ -143,7 +187,7 @@ class Respuesta:
 
                 return (
                     f"Entendido. Tus pronombres son "
-                    f"{nuevos_pronombres}. 💜 "
+                    f"{nuevos_pronombres}. "
                     "Los tendré en cuenta."
                 )
 
@@ -183,7 +227,7 @@ class Respuesta:
                 )
 
                 return (
-                    f"¡Entendido! 💜 "
+                    f"¡Entendido! "
                     f"Tu color favorito es {color}. "
                     "Lo recordaré."
                 )
@@ -206,7 +250,7 @@ class Respuesta:
             if color:
 
                 return (
-                    f"Tu color favorito es {color}. 💜 "
+                    f"Tu color favorito es {color}. "
                     "Lo recuerdo."
                 )
 
@@ -239,7 +283,7 @@ class Respuesta:
             )
 
             return (
-                "¡Sí! 💜 Recordaré que estás "
+                "Sí. Recordaré que estás "
                 "construyendo a LUMY."
             )
 
@@ -279,7 +323,7 @@ class Respuesta:
                     )
 
                     return (
-                        f"¡Lo tendré en cuenta! 💜 "
+                        f"Lo tendré en cuenta. "
                         f"Recuerdo que te gusta {contenido}."
                     )
 
@@ -310,7 +354,7 @@ class Respuesta:
                     )
 
                     return (
-                        f"Entendido. 💜 "
+                        f"Entendido. "
                         f"Recordaré que no te gusta {contenido}."
                     )
 
@@ -335,7 +379,7 @@ class Respuesta:
                 )
 
                 return (
-                    "Esto es lo que recuerdo de ti: 💜\n\n"
+                    "Esto es lo que recuerdo de ti:\n\n"
                     f"{lista}"
                 )
 
@@ -357,7 +401,7 @@ class Respuesta:
 
             if nombre:
 
-                return f"Te llamas {nombre}. ✨"
+                return f"Te llamas {nombre}."
 
             return (
                 "Todavía no sé cómo te llamas. "
@@ -378,7 +422,7 @@ class Respuesta:
 
             if pronombres:
 
-                return f"Usas {pronombres}. 💜"
+                return f"Tus pronombres registrados son {pronombres}."
 
             return (
                 "Todavía no me has indicado tus pronombres."
@@ -396,7 +440,7 @@ class Respuesta:
             )
 
             return (
-                "¡De nada! 💜 "
+                "De nada. "
                 "Me alegra poder ayudarte."
             )
 
@@ -425,12 +469,12 @@ class Respuesta:
             if nombre:
 
                 return (
-                    f"¡Hola, {nombre}! 💜 "
+                    f"Hola, {nombre}. "
                     "Qué bueno escucharte. ¿Qué hacemos hoy?"
                 )
 
             return (
-                "¡Hola! 💜 "
+                "Hola. "
                 "Qué bueno escucharte. ¿Qué hacemos hoy?"
             )
 
@@ -454,65 +498,8 @@ class Respuesta:
         ):
 
             return (
-                "¡Hasta luego! 💜 "
+                "Hasta luego. "
                 "Estaré aquí cuando vuelvas."
-            )
-
-        # ==================================================
-        # BÚSQUEDA WEB
-        # ==================================================
-
-        if self.necesita_busqueda_web(mensaje):
-
-            print(
-                "[LUMY] La pregunta requiere información actual."
-            )
-
-            resultados = self.busqueda_web.buscar(
-                mensaje
-            )
-
-            if resultados:
-
-                contexto_web = (
-                    self.busqueda_web.formatear_resultados(
-                        resultados
-                    )
-                )
-
-                mensaje_con_web = f"""
-El usuario realizó la siguiente pregunta:
-
-{mensaje}
-
-Se realizó una búsqueda web para obtener información actual.
-
-Estos son los resultados encontrados:
-
-{contexto_web}
-
-Utiliza estos resultados como fuente de información.
-
-Responde al usuario de forma natural, clara y útil.
-
-No inventes información que no aparezca en los resultados
-ni en tu conocimiento confiable.
-
-Si los resultados no permiten responder con seguridad,
-indica honestamente que no encontraste suficiente información.
-"""
-
-                respuesta = self.ia.generar(
-                    mensaje_con_web,
-                    personalidad,
-                    emociones,
-                    memoria
-                )
-
-                return respuesta
-
-            print(
-                "[LUMY] La búsqueda no devolvió resultados."
             )
 
         # ==================================================
