@@ -16,6 +16,7 @@ class IA:
         self.api_key = os.getenv("GEMINI_API_KEY")
 
         if not self.api_key:
+
             raise RuntimeError(
                 "No se encontró la variable GEMINI_API_KEY."
             )
@@ -45,10 +46,12 @@ class IA:
         try:
 
             # ==========================================
-            # OBTENER MEMORIA
+            # OBTENER CONTEXTO RELEVANTE
             # ==========================================
 
-            contexto_memoria = memoria.obtener_contexto()
+            contexto_memoria = memoria.obtener_contexto_relevante(
+                mensaje
+            )
 
             usuario = contexto_memoria.get(
                 "usuario",
@@ -70,7 +73,10 @@ class IA:
                 []
             )
 
-            conversacion = memoria.obtener_conversacion()
+            conversacion = contexto_memoria.get(
+                "conversacion",
+                []
+            )
 
             # ==========================================
             # ESTADO EMOCIONAL
@@ -377,7 +383,7 @@ Mantén la personalidad de LUMY.
 
             contenidos = []
 
-            for conversacion_actual in conversacion[-6:]:
+            for conversacion_actual in conversacion:
 
                 usuario_anterior = conversacion_actual.get(
                     "usuario",
@@ -436,7 +442,10 @@ Mantén la personalidad de LUMY.
 
             max_intentos = 2
 
-            for intento in range(1, max_intentos + 1):
+            for intento in range(
+                1,
+                max_intentos + 1
+            ):
 
                 try:
 

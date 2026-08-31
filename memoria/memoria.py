@@ -4,6 +4,7 @@ from firebase.memoria_firebase import FirebaseMemoria
 class Memoria:
 
     def __init__(self, uid):
+
         self.uid = uid
 
         # ==========================================
@@ -34,7 +35,7 @@ class Memoria:
         self.recuerdos = []
 
         # ==========================================
-        # MEMORIA TEMPORAL
+        # MEMORIA TEMPORAL / CONVERSACIÓN
         # ==========================================
 
         self.conversacion = []
@@ -52,8 +53,12 @@ class Memoria:
         identidad = self.firebase.cargar_identidad()
 
         if identidad:
+
             self.usuario["nombre"] = identidad.get("name")
-            self.usuario["pronombres"] = identidad.get("pronombres")
+
+            self.usuario["pronombres"] = identidad.get(
+                "pronombres"
+            )
 
         # ==========================================
         # CARGAR MEMORIA
@@ -62,6 +67,7 @@ class Memoria:
         memoria = self.firebase.cargar_memoria()
 
         if memoria:
+
             self.conversacion = memoria.get(
                 "conversacion",
                 []
@@ -93,12 +99,12 @@ class Memoria:
     ):
 
         if nombre:
+
             self.usuario["nombre"] = nombre.strip()
 
         if pronombres:
-            self.usuario["pronombres"] = pronombres.strip()
 
-        # Guardar permanentemente
+            self.usuario["pronombres"] = pronombres.strip()
 
         self.firebase.guardar_identidad(
             nombre=self.usuario["nombre"],
@@ -131,7 +137,10 @@ class Memoria:
     # OBTENER PREFERENCIA
     # ==========================================
 
-    def obtener_preferencia(self, clave):
+    def obtener_preferencia(
+        self,
+        clave
+    ):
 
         return self.preferencias.get(clave)
 
@@ -153,7 +162,10 @@ class Memoria:
     # OBTENER CONFIGURACIÓN
     # ==========================================
 
-    def obtener_configuracion(self, clave):
+    def obtener_configuracion(
+        self,
+        clave
+    ):
 
         return self.configuracion.get(clave)
 
@@ -161,7 +173,10 @@ class Memoria:
     # GUARDAR RECUERDO
     # ==========================================
 
-    def guardar_recuerdo(self, recuerdo):
+    def guardar_recuerdo(
+        self,
+        recuerdo
+    ):
 
         if not recuerdo:
             return
@@ -196,6 +211,100 @@ class Memoria:
         }
 
     # ==========================================
+    # OBTENER CONTEXTO RELEVANTE
+    # ==========================================
+
+    def obtener_contexto_relevante(
+        self,
+        mensaje,
+        limite_recuerdos=8,
+        limite_conversacion=6
+    ):
+
+        mensaje = mensaje.lower().strip()
+
+        # ==========================================
+        # IDENTIDAD
+        # ==========================================
+
+        usuario = self.usuario.copy()
+
+        # ==========================================
+        # PREFERENCIAS
+        # ==========================================
+
+        preferencias = self.preferencias.copy()
+
+        # ==========================================
+        # CONFIGURACIÓN
+        # ==========================================
+
+        configuracion = self.configuracion.copy()
+
+        # ==========================================
+        # BUSCAR RECUERDOS RELEVANTES
+        # ==========================================
+
+        palabras_mensaje = set(
+            mensaje.split()
+        )
+
+        recuerdos_relevantes = []
+
+        for recuerdo in self.recuerdos:
+
+            palabras_recuerdo = set(
+                recuerdo.lower().split()
+            )
+
+            coincidencias = (
+                palabras_mensaje
+                & palabras_recuerdo
+            )
+
+            if coincidencias:
+
+                recuerdos_relevantes.append(
+                    recuerdo
+                )
+
+        # ==========================================
+        # SI NO HAY COINCIDENCIAS
+        # ==========================================
+
+        if not recuerdos_relevantes:
+
+            recuerdos_relevantes = self.recuerdos[
+                -limite_recuerdos:
+            ]
+
+        else:
+
+            recuerdos_relevantes = recuerdos_relevantes[
+                -limite_recuerdos:
+            ]
+
+        # ==========================================
+        # CONVERSACIÓN RECIENTE
+        # ==========================================
+
+        conversacion_reciente = self.conversacion[
+            -limite_conversacion:
+        ]
+
+        # ==========================================
+        # DEVOLVER CONTEXTO
+        # ==========================================
+
+        return {
+            "usuario": usuario,
+            "preferencias": preferencias,
+            "configuracion": configuracion,
+            "recuerdos": recuerdos_relevantes,
+            "conversacion": conversacion_reciente
+        }
+
+    # ==========================================
     # GUARDAR MENSAJE
     # ==========================================
 
@@ -209,6 +318,12 @@ class Memoria:
             "usuario": usuario,
             "lumy": lumy
         })
+
+        # ==========================================
+        # LIMITAR MEMORIA DE CORTO PLAZO
+        # ==========================================
+
+        self.conversacion = self.conversacion[-20:]
 
         self.guardar_memoria()
 
@@ -227,13 +342,8 @@ class Memoria:
     def guardar_memoria(self):
 
         self.firebase.guardar_memoria({
-
             "conversacion": self.conversacion,
-
             "preferencias": self.preferencias,
-
             "configuracion": self.configuracion,
-
             "recuerdos": self.recuerdos
-
         })

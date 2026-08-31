@@ -1,7 +1,11 @@
 from entrada import Entrada
+
 from respuesta import Respuesta
+
 from memoria.memoria import Memoria
+
 from emociones.emociones import Emociones
+
 from personalidad.personalidad import Personalidad
 
 
@@ -12,9 +16,13 @@ class Cerebro:
         self.uid = uid
 
         self.entrada = Entrada()
+
         self.memoria = Memoria(uid)
+
         self.emociones = Emociones()
+
         self.personalidad = Personalidad()
+
         self.respuesta = Respuesta()
 
     # ==================================================
@@ -26,17 +34,8 @@ class Cerebro:
         mensaje = self.entrada.recibir(mensaje)
 
         if not mensaje:
+
             return "No recibí ningún mensaje."
-
-        # ==================================================
-        # RECUPERAR INFORMACIÓN DE MEMORIA
-        # ==================================================
-
-        usuario = self.memoria.obtener_usuario()
-        preferencias = self.memoria.preferencias
-        configuracion = self.memoria.configuracion
-        recuerdos = self.memoria.obtener_recuerdos()
-        conversacion = self.memoria.obtener_conversacion()
 
         # ==================================================
         # GENERAR RESPUESTA
