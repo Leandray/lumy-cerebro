@@ -1,10 +1,125 @@
 from ia.ia import IA
+from datetime import datetime, timedelta
+import re
 
 
 class Respuesta:
 
     def __init__(self):
         self.ia = IA()
+
+            # ==================================================
+    # DETECTAR ACCIONES DE CALENDARIO
+    # ==================================================
+
+    def detectar_accion_calendario(self, mensaje):
+        texto = mensaje.lower().strip()
+
+        # ----------------------------------------------
+        # CREAR EVENTO
+        # ----------------------------------------------
+
+        patrones_crear = [
+            "agenda ",
+            "agéndame ",
+            "agendame ",
+            "crea un evento",
+            "crear un evento",
+            "añade un evento",
+            "anota en mi calendario",
+            "anota ",
+            "pon en mi calendario"
+        ]
+
+        es_creacion = any(
+            patron in texto
+            for patron in patrones_crear
+        )
+
+        if not es_creacion:
+            return None
+
+        # ----------------------------------------------
+        # DETECTAR HORA
+        # ----------------------------------------------
+
+        coincidencia_hora = re.search(
+            r'(\d{1,2})(?::(\d{2}))?\s*(?:de la\s*)?(am|pm)?',
+            texto
+        )
+
+        if not coincidencia_hora:
+            return None
+
+        hora = int(coincidencia_hora.group(1))
+        minutos = int(
+            coincidencia_hora.group(2) or 0
+        )
+        periodo = coincidencia_hora.group(3)
+
+        if periodo == "pm" and hora < 12:
+            hora += 12
+
+        if periodo == "am" and hora == 12:
+            hora = 0
+
+        # ----------------------------------------------
+        # DETECTAR FECHA
+        # ----------------------------------------------
+
+        ahora = datetime.now()
+
+        if "mañana" in texto:
+            fecha = ahora + timedelta(days=1)
+
+        elif "hoy" in texto:
+            fecha = ahora
+
+        else:
+            # Si no especifica fecha,
+            # usamos mañana por seguridad.
+            fecha = ahora + timedelta(days=1)
+
+        inicio = fecha.replace(
+            hour=hora,
+            minute=minutos,
+            second=0,
+            microsecond=0
+        )
+
+        # ----------------------------------------------
+        # DURACIÓN POR DEFECTO: 1 HORA
+        # ----------------------------------------------
+
+        fin = inicio + timedelta(hours=1)
+
+        # ----------------------------------------------
+        # OBTENER TÍTULO
+        # ----------------------------------------------
+
+        titulo = "Evento"
+
+        if "reunión" in texto or "reunion" in texto:
+            titulo = "Reunión"
+
+        elif "cumpleaños" in texto or "cumpleanos" in texto:
+            titulo = "Cumpleaños"
+
+        elif "cita" in texto:
+            titulo = "Cita"
+
+        elif "clase" in texto:
+            titulo = "Clase"
+
+        return {
+            "tipo": "crear_evento",
+            "datos": {
+                "titulo": titulo,
+                "inicio": inicio.isoformat(),
+                "fin": fin.isoformat(),
+                "descripcion": ""
+            }
+        }
 
     def generar(
         self,
@@ -15,6 +130,39 @@ class Respuesta:
     ):
 
         mensaje_lower = mensaje.lower().strip()
+                # ==================================================
+        # CALENDARIO
+        # ==================================================
+
+        accion_calendario = self.detectar_accion_calendario(
+            mensaje
+        )
+
+        if accion_calendario:
+
+            inicio = datetime.fromisoformat(
+                accion_calendario["datos"]["inicio"]
+            )
+
+            fecha_texto = inicio.strftime(
+                "%d/%m/%Y"
+            )
+
+            hora_texto = inicio.strftime(
+                "%H:%M"
+            )
+
+            titulo = accion_calendario["datos"]["titulo"]
+
+            return {
+                "respuesta": (
+                    f"¿Quieres que cree el evento "
+                    f"'{titulo}' el {fecha_texto} "
+                    f"a las {hora_texto}?"
+                ),
+                "accion": accion_calendario,
+                "requiere_confirmacion": True
+            }
 
         usuario = memoria.obtener_usuario()
 
