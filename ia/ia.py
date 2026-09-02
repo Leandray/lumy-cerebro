@@ -529,11 +529,6 @@ Los pronombres deben aplicarse únicamente al usuario.
                             thinking_config=types.ThinkingConfig(
                                 thinking_level="low"
                             ),
-                            tools=[
-                                types.Tool(
-                                    google_search=types.GoogleSearch()
-                                )
-                            ]
                         )
                     )
 
