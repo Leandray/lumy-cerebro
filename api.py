@@ -8,6 +8,7 @@ from cerebro import Cerebro
 # ==========================================
 
 app = Flask(__name__)
+
 CORS(app)
 
 
@@ -77,10 +78,48 @@ def lumy():
 
         print(">>> PROCESANDO MENSAJE...")
 
-        respuesta = cerebro.procesar(mensaje)
+        resultado = cerebro.procesar(mensaje)
 
-        print(">>> RESPUESTA GENERADA:")
-        print(respuesta)
+        print(">>> RESULTADO GENERADO:")
+        print(resultado)
+
+        # --------------------------------------
+        # COMPROBAR RESULTADO
+        # --------------------------------------
+
+        if isinstance(resultado, dict):
+
+            respuesta = resultado.get(
+                "respuesta",
+                ""
+            )
+
+            accion = resultado.get(
+                "accion",
+                None
+            )
+
+            requiere_confirmacion = resultado.get(
+                "requiere_confirmacion",
+                False
+            )
+
+        else:
+
+            respuesta = resultado
+            accion = None
+            requiere_confirmacion = False
+
+        # --------------------------------------
+        # MOSTRAR INFORMACIÓN
+        # --------------------------------------
+
+        print(">>> RESPUESTA:", respuesta)
+        print(">>> ACCIÓN:", accion)
+        print(
+            ">>> REQUIERE CONFIRMACIÓN:",
+            requiere_confirmacion
+        )
 
         # --------------------------------------
         # DEVOLVER RESPUESTA
@@ -89,7 +128,9 @@ def lumy():
         print(">>> ENVIANDO RESPUESTA A LA WEB")
 
         return jsonify({
-            "respuesta": respuesta
+            "respuesta": respuesta,
+            "accion": accion,
+            "requiere_confirmacion": requiere_confirmacion
         })
 
     except Exception as error:
@@ -113,8 +154,10 @@ if __name__ == "__main__":
     print("================================")
     print("       LUMY - API")
     print("================================")
+
     print("Servidor iniciado.")
     print("Esperando conexiones...")
+
     print("================================")
 
     app.run(
