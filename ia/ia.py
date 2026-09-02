@@ -27,7 +27,7 @@ class IA:
         # MODELO
         # ==========================================
 
-        self.modelo = "gemini-3.7-flash"
+        self.modelo = "gemini-3.6-flash"
 
     # ==========================================
     # GENERAR RESPUESTA
