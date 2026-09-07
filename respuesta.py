@@ -11,10 +11,33 @@ import re
 
 class Respuesta:
 
-    def __init__(self):
+    def __init__(self, notificar=None):
+
+        self.notificar = notificar
+
         self.ia = IA()
         self.calculadora = Calculadora()
-        self.temporizador = Temporizador()
+
+        self.temporizador = Temporizador(
+        al_terminar=self.notificar_temporizador
+        )
+
+    def notificar_temporizador(self):
+
+    print(
+        "[LUMY] 🔔 El temporizador ha terminado."
+    )
+
+    if self.notificar:
+
+        self.notificar({
+            "tipo": "temporizador",
+            "titulo": "Temporizador terminado",
+            "mensaje": "¡Tu temporizador ha terminado!",
+            "icono": "⏱️"
+        })
+
+    
 
     # ==================================================
     # DETECTAR ACCIONES DE SPOTIFY

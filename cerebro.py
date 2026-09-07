@@ -7,32 +7,40 @@ from personalidad.personalidad import Personalidad
 
 class Cerebro:
 
-    def __init__(self, uid):
+    def __init__(self, uid, notificar=None):
+
         self.uid = uid
+        self.notificar = notificar
+
         self.entrada = Entrada()
         self.memoria = Memoria(uid)
         self.emociones = Emociones()
         self.personalidad = Personalidad()
-        self.respuesta = Respuesta()
 
-    # ==================================================
-    # PROCESAR MENSAJE
-    # ==================================================
+        self.respuesta = Respuesta(
+            notificar=self.enviar_notificacion
+        )
+
+    def enviar_notificacion(self, notificacion):
+
+        if self.notificar:
+
+            self.notificar(
+                self.uid,
+                notificacion
+            )
 
     def procesar(self, mensaje):
 
         mensaje = self.entrada.recibir(mensaje)
 
         if not mensaje:
+
             return {
                 "respuesta": "No recibí ningún mensaje.",
                 "accion": None,
                 "requiere_confirmacion": False
             }
-
-        # ==================================================
-        # GENERAR RESPUESTA
-        # ==================================================
 
         resultado = self.respuesta.generar(
             mensaje,
@@ -41,10 +49,6 @@ class Cerebro:
             self.memoria
         )
 
-        # ==================================================
-        # COMPROBAR SI ES UNA ACCIÓN
-        # ==================================================
-
         if isinstance(resultado, dict):
 
             texto_respuesta = resultado.get(
@@ -52,20 +56,12 @@ class Cerebro:
                 ""
             )
 
-            # ==================================================
-            # GUARDAR CONVERSACIÓN
-            # ==================================================
-
             self.memoria.guardar_mensaje(
                 mensaje,
                 texto_respuesta
             )
 
             return resultado
-
-        # ==================================================
-        # RESPUESTA NORMAL
-        # ==================================================
 
         self.memoria.guardar_mensaje(
             mensaje,

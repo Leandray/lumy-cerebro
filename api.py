@@ -16,28 +16,50 @@ CORS(app)
 # como temporizadores mientras el servidor está activo.
 
 cerebros = {}
+notificaciones = {}
+
+
+def recibir_notificacion(uid, notificacion):
+
+    if uid not in notificaciones:
+        notificaciones[uid] = []
+
+    notificaciones[uid].append(
+        notificacion
+    )
+
+    print(
+        ">>> NOTIFICACIÓN GUARDADA PARA:",
+        uid
+    )
 
 
 def obtener_cerebro(uid):
-    """
-    Obtiene el Cerebro del usuario.
-
-    Si todavía no existe, crea uno nuevo.
-    Si ya existe, reutiliza el mismo.
-    """
 
     if uid not in cerebros:
-        print(">>> CREANDO NUEVO CEREBRO PARA:", uid)
 
-        cerebros[uid] = Cerebro(uid)
+        print(
+            ">>> CREANDO NUEVO CEREBRO PARA:",
+            uid
+        )
 
-        print(">>> CEREBRO GUARDADO EN MEMORIA")
+        cerebros[uid] = Cerebro(
+            uid,
+            notificar=recibir_notificacion
+        )
+
+        print(
+            ">>> CEREBRO GUARDADO EN MEMORIA"
+        )
 
     else:
-        print(">>> REUTILIZANDO CEREBRO EXISTENTE:", uid)
+
+        print(
+            ">>> REUTILIZANDO CEREBRO EXISTENTE:",
+            uid
+        )
 
     return cerebros[uid]
-
 
 # ==================================================
 # RUTA PRINCIPAL DE LUMY
@@ -200,7 +222,34 @@ def lumy():
             "error": str(error)
 
         }), 500
+@app.route("/notificaciones/<uid>", methods=["GET"])
+def obtener_notificaciones(uid):
 
+    try:
+
+        pendientes = notificaciones.get(
+            uid,
+            []
+        )
+
+        # Vaciar las notificaciones después
+        # de entregarlas a la web
+        notificaciones[uid] = []
+
+        return jsonify({
+            "notificaciones": pendientes
+        })
+
+    except Exception as error:
+
+        print(
+            ">>> ERROR OBTENIENDO NOTIFICACIONES:",
+            error
+        )
+
+        return jsonify({
+            "error": str(error)
+        }), 500
 
 # ==================================================
 # INICIAR SERVIDOR

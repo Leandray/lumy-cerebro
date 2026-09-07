@@ -4,16 +4,13 @@ import time
 
 class Temporizador:
 
-    def __init__(self):
+    def __init__(self, al_terminar=None):
         self.activo = False
         self.duracion = 0
         self.inicio = None
         self.finalizacion = None
         self.hilo = None
-
-    # ==================================================
-    # CREAR TEMPORIZADOR
-    # ==================================================
+        self.al_terminar = al_terminar
 
     def crear(self, segundos):
 
@@ -22,11 +19,12 @@ class Temporizador:
                 "La duración debe ser mayor que cero."
             )
 
+        # Si ya había uno activo, lo cancelamos
+        self.activo = False
+
         self.duracion = segundos
         self.inicio = time.time()
-        self.finalizacion = (
-            self.inicio + segundos
-        )
+        self.finalizacion = self.inicio + segundos
         self.activo = True
 
         self.hilo = threading.Thread(
@@ -36,17 +34,11 @@ class Temporizador:
 
         self.hilo.start()
 
-    # ==================================================
-    # ESPERAR
-    # ==================================================
-
     def _esperar(self):
 
         while self.activo:
 
-            restante = (
-                self.finalizacion - time.time()
-            )
+            restante = self.finalizacion - time.time()
 
             if restante <= 0:
 
@@ -56,32 +48,36 @@ class Temporizador:
                     "[LUMY] 🔔 El temporizador ha terminado."
                 )
 
+                # Avisar a la API
+                if self.al_terminar:
+
+                    try:
+                        self.al_terminar()
+                    except Exception as error:
+                        print(
+                            "[LUMY] Error al enviar "
+                            "notificación:",
+                            error
+                        )
+
                 break
 
             time.sleep(0.5)
-
-    # ==================================================
-    # CONSULTAR
-    # ==================================================
 
     def consultar(self):
 
         if not self.activo:
             return None
 
-        restante = (
-            self.finalizacion - time.time()
-        )
+        restante = self.finalizacion - time.time()
 
         if restante <= 0:
+
             self.activo = False
+
             return None
 
         return int(restante)
-
-    # ==================================================
-    # CANCELAR
-    # ==================================================
 
     def cancelar(self):
 
@@ -91,10 +87,6 @@ class Temporizador:
         self.activo = False
 
         return True
-
-    # ==================================================
-    # ESTADO
-    # ==================================================
 
     def esta_activo(self):
 
