@@ -3,18 +3,45 @@ from flask_cors import CORS
 from cerebro import Cerebro
 
 
-# ==========================================
-# CREAR SERVIDOR
-# ==========================================
-
 app = Flask(__name__)
-
 CORS(app)
 
 
-# ==========================================
+# ==================================================
+# CEREBROS ACTIVOS
+# ==================================================
+
+# Guarda un Cerebro por cada usuario.
+# Esto permite conservar el estado de herramientas
+# como temporizadores mientras el servidor está activo.
+
+cerebros = {}
+
+
+def obtener_cerebro(uid):
+    """
+    Obtiene el Cerebro del usuario.
+
+    Si todavía no existe, crea uno nuevo.
+    Si ya existe, reutiliza el mismo.
+    """
+
+    if uid not in cerebros:
+        print(">>> CREANDO NUEVO CEREBRO PARA:", uid)
+
+        cerebros[uid] = Cerebro(uid)
+
+        print(">>> CEREBRO GUARDADO EN MEMORIA")
+
+    else:
+        print(">>> REUTILIZANDO CEREBRO EXISTENTE:", uid)
+
+    return cerebros[uid]
+
+
+# ==================================================
 # RUTA PRINCIPAL DE LUMY
-# ==========================================
+# ==================================================
 
 @app.route("/lumy", methods=["POST"])
 def lumy():
@@ -25,9 +52,9 @@ def lumy():
         print(">>> NUEVA PETICIÓN A LUMY")
         print("================================")
 
-        # --------------------------------------
+        # ------------------------------------------
         # RECIBIR DATOS
-        # --------------------------------------
+        # ------------------------------------------
 
         datos = request.get_json()
 
@@ -38,43 +65,52 @@ def lumy():
                 "error": "No se recibieron datos."
             }), 400
 
+
+        # ------------------------------------------
+        # OBTENER UID Y MENSAJE
+        # ------------------------------------------
+
         uid = datos.get("uid")
         mensaje = datos.get("mensaje")
 
         print(">>> UID:", uid)
         print(">>> MENSAJE:", mensaje)
 
-        # --------------------------------------
-        # COMPROBAR UID
-        # --------------------------------------
+
+        # ------------------------------------------
+        # VALIDAR UID
+        # ------------------------------------------
 
         if not uid:
             return jsonify({
                 "error": "Falta el UID del usuario."
             }), 400
 
-        # --------------------------------------
-        # COMPROBAR MENSAJE
-        # --------------------------------------
+
+        # ------------------------------------------
+        # VALIDAR MENSAJE
+        # ------------------------------------------
 
         if not mensaje:
             return jsonify({
                 "error": "Falta el mensaje."
             }), 400
 
-        # --------------------------------------
-        # CREAR CEREBRO
-        # --------------------------------------
 
-        print(">>> CREANDO CEREBRO...")
+        # ------------------------------------------
+        # OBTENER CEREBRO
+        # ------------------------------------------
 
-        cerebro = Cerebro(uid)
+        print(">>> OBTENIENDO CEREBRO...")
 
-        print(">>> CEREBRO CREADO")
+        cerebro = obtener_cerebro(uid)
 
-        # --------------------------------------
+        print(">>> CEREBRO LISTO")
+
+
+        # ------------------------------------------
         # PROCESAR MENSAJE
-        # --------------------------------------
+        # ------------------------------------------
 
         print(">>> PROCESANDO MENSAJE...")
 
@@ -83,9 +119,10 @@ def lumy():
         print(">>> RESULTADO GENERADO:")
         print(resultado)
 
-        # --------------------------------------
-        # COMPROBAR RESULTADO
-        # --------------------------------------
+
+        # ------------------------------------------
+        # PROCESAR RESULTADO
+        # ------------------------------------------
 
         if isinstance(resultado, dict):
 
@@ -107,31 +144,48 @@ def lumy():
         else:
 
             respuesta = resultado
+
             accion = None
+
             requiere_confirmacion = False
 
-        # --------------------------------------
-        # MOSTRAR INFORMACIÓN
-        # --------------------------------------
+
+        # ------------------------------------------
+        # MOSTRAR RESULTADO
+        # ------------------------------------------
 
         print(">>> RESPUESTA:", respuesta)
+
         print(">>> ACCIÓN:", accion)
+
         print(
             ">>> REQUIERE CONFIRMACIÓN:",
             requiere_confirmacion
         )
 
-        # --------------------------------------
-        # DEVOLVER RESPUESTA
-        # --------------------------------------
+
+        # ------------------------------------------
+        # ENVIAR RESPUESTA A LA WEB
+        # ------------------------------------------
 
         print(">>> ENVIANDO RESPUESTA A LA WEB")
 
+
         return jsonify({
+
             "respuesta": respuesta,
+
             "accion": accion,
-            "requiere_confirmacion": requiere_confirmacion
+
+            "requiere_confirmacion":
+                requiere_confirmacion
+
         })
+
+
+    # ==================================================
+    # MANEJO DE ERRORES
+    # ==================================================
 
     except Exception as error:
 
@@ -140,14 +194,17 @@ def lumy():
         print(error)
         print("================================")
 
+
         return jsonify({
+
             "error": str(error)
+
         }), 500
 
 
-# ==========================================
+# ==================================================
 # INICIAR SERVIDOR
-# ==========================================
+# ==================================================
 
 if __name__ == "__main__":
 
@@ -156,12 +213,18 @@ if __name__ == "__main__":
     print("================================")
 
     print("Servidor iniciado.")
+
     print("Esperando conexiones...")
 
     print("================================")
 
+
     app.run(
+
         host="0.0.0.0",
+
         port=5000,
+
         debug=True
+
     )
