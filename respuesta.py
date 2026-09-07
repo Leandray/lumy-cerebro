@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 
 from herramientas.calculadora import Calculadora
 
+from herramientas.temporizador import Temporizador
+
 import re
 
 
@@ -12,6 +14,7 @@ class Respuesta:
     def __init__(self):
         self.ia = IA()
         self.calculadora = Calculadora()
+        self.temporizador = Temporizador()
 
     # ==================================================
     # DETECTAR ACCIONES DE SPOTIFY
@@ -450,6 +453,147 @@ class Respuesta:
                 "datos": {}
             }
 
+        # ==================================================
+    # DETECTAR TEMPORIZADOR
+    # ==================================================
+
+    def detectar_temporizador(self, mensaje):
+
+        texto = mensaje.lower().strip()
+
+        # ----------------------------------------------
+        # CANCELAR
+        # ----------------------------------------------
+
+        patrones_cancelar = [
+            "cancela el temporizador",
+            "cancelar el temporizador",
+            "cancela mi temporizador",
+            "cancelar mi temporizador",
+            "detén el temporizador",
+            "deten el temporizador"
+        ]
+
+        if any(
+            patron in texto
+            for patron in patrones_cancelar
+        ):
+
+            return {
+                "tipo": "temporizador_cancelar",
+                "datos": {}
+            }
+
+        # ----------------------------------------------
+        # CONSULTAR
+        # ----------------------------------------------
+
+        patrones_consultar = [
+            "cuánto falta en el temporizador",
+            "cuanto falta en el temporizador",
+            "cuánto falta para que termine",
+            "cuanto falta para que termine",
+            "consulta el temporizador",
+            "consultar el temporizador",
+            "cómo va el temporizador",
+            "como va el temporizador"
+        ]
+
+        if any(
+            patron in texto
+            for patron in patrones_consultar
+        ):
+
+            return {
+                "tipo": "temporizador_consultar",
+                "datos": {}
+            }
+
+        # ----------------------------------------------
+        # CREAR
+        # ----------------------------------------------
+
+        if not any(
+            palabra in texto
+            for palabra in [
+                "temporizador",
+                "temporizador de"
+            ]
+        ):
+            return None
+
+        # ----------------------------------------------
+        # SEGUNDOS
+        # ----------------------------------------------
+
+        coincidencia = re.search(
+            r"(\d+(?:[.,]\d+)?)\s*segundos?",
+            texto
+        )
+
+        if coincidencia:
+
+            segundos = float(
+                coincidencia.group(1).replace(",", ".")
+            )
+
+            return {
+                "tipo": "temporizador_crear",
+                "datos": {
+                    "segundos": int(segundos)
+                }
+            }
+
+        # ----------------------------------------------
+        # MINUTOS
+        # ----------------------------------------------
+
+        coincidencia = re.search(
+            r"(\d+(?:[.,]\d+)?)\s*minutos?",
+            texto
+        )
+
+        if coincidencia:
+
+            minutos = float(
+                coincidencia.group(1).replace(",", ".")
+            )
+
+            return {
+                "tipo": "temporizador_crear",
+                "datos": {
+                    "segundos": int(
+                        minutos * 60
+                    )
+                }
+            }
+
+        # ----------------------------------------------
+        # HORAS
+        # ----------------------------------------------
+
+        coincidencia = re.search(
+            r"(\d+(?:[.,]\d+)?)\s*horas?",
+            texto
+        )
+
+        if coincidencia:
+
+            horas = float(
+                coincidencia.group(1).replace(",", ".")
+            )
+
+            return {
+                "tipo": "temporizador_crear",
+                "datos": {
+                    "segundos": int(
+                        horas * 3600
+                    )
+                }
+            }
+
+        return None
+
     # ==================================================
     # GENERAR RESPUESTA
     # ==================================================
@@ -503,6 +647,140 @@ class Respuesta:
                         "Revisa los números e inténtalo nuevamente."
                     ),
                     "accion": accion_calculadora,
+                    "requiere_confirmacion": False
+                }
+
+                # ==================================================
+        # TEMPORIZADOR
+        # ==================================================
+
+        accion_temporizador = self.detectar_temporizador(
+            mensaje
+        )
+
+        if accion_temporizador:
+
+            tipo = accion_temporizador["tipo"]
+
+            # ----------------------------------------------
+            # CREAR
+            # ----------------------------------------------
+
+            if tipo == "temporizador_crear":
+
+                segundos = accion_temporizador[
+                    "datos"
+                ]["segundos"]
+
+                self.temporizador.crear(
+                    segundos
+                )
+
+                minutos = segundos // 60
+                segundos_restantes = segundos % 60
+
+                if minutos > 0:
+
+                    if segundos_restantes > 0:
+
+                        duracion = (
+                            f"{minutos} minutos "
+                            f"y {segundos_restantes} segundos"
+                        )
+
+                    else:
+
+                        duracion = (
+                            f"{minutos} minutos"
+                        )
+
+                else:
+
+                    duracion = (
+                        f"{segundos} segundos"
+                    )
+
+                return {
+                    "respuesta": (
+                        f"Listo. He iniciado un "
+                        f"temporizador de {duracion}."
+                    ),
+                    "accion": accion_temporizador,
+                    "requiere_confirmacion": False
+                }
+
+            # ----------------------------------------------
+            # CONSULTAR
+            # ----------------------------------------------
+
+            if tipo == "temporizador_consultar":
+
+                restante = (
+                    self.temporizador.consultar()
+                )
+
+                if restante is None:
+
+                    return {
+                        "respuesta": (
+                            "No hay ningún temporizador activo."
+                        ),
+                        "accion": accion_temporizador,
+                        "requiere_confirmacion": False
+                    }
+
+                minutos = restante // 60
+                segundos = restante % 60
+
+                if minutos > 0:
+
+                    tiempo = (
+                        f"{minutos} minutos "
+                        f"y {segundos} segundos"
+                    )
+
+                else:
+
+                    tiempo = (
+                        f"{segundos} segundos"
+                    )
+
+                return {
+                    "respuesta": (
+                        f"Al temporizador le quedan "
+                        f"{tiempo}."
+                    ),
+                    "accion": accion_temporizador,
+                    "requiere_confirmacion": False
+                }
+
+            # ----------------------------------------------
+            # CANCELAR
+            # ----------------------------------------------
+
+            if tipo == "temporizador_cancelar":
+
+                cancelado = (
+                    self.temporizador.cancelar()
+                )
+
+                if cancelado:
+
+                    respuesta = (
+                        "Listo. He cancelado "
+                        "el temporizador."
+                    )
+
+                else:
+
+                    respuesta = (
+                        "No hay ningún temporizador "
+                        "activo para cancelar."
+                    )
+
+                return {
+                    "respuesta": respuesta,
+                    "accion": accion_temporizador,
                     "requiere_confirmacion": False
                 }
 
