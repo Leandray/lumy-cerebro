@@ -24,13 +24,13 @@ class Respuesta:
 
     def notificar_temporizador(self):
 
-    print(
+        print(
         "[LUMY] 🔔 El temporizador ha terminado."
-    )
+        )
 
-    if self.notificar:
+        if self.notificar:
 
-        self.notificar({
+            self.notificar({
             "tipo": "temporizador",
             "titulo": "Temporizador terminado",
             "mensaje": "¡Tu temporizador ha terminado!",
