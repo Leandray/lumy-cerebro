@@ -2,6 +2,8 @@ from ia.ia import IA
 
 from datetime import datetime, timedelta
 
+from herramientas.calculadora import Calculadora
+
 import re
 
 
@@ -9,6 +11,7 @@ class Respuesta:
 
     def __init__(self):
         self.ia = IA()
+        self.calculadora = Calculadora()
 
     # ==================================================
     # DETECTAR ACCIONES DE SPOTIFY
@@ -274,6 +277,179 @@ class Respuesta:
             }
         }
 
+        # ==================================================
+    # DETECTAR CALCULADORA
+    # ==================================================
+
+    def detectar_calculadora(self, mensaje):
+
+        texto = mensaje.lower().strip()
+
+        # ----------------------------------------------
+        # QUITAR PALABRAS INNECESARIAS
+        # ----------------------------------------------
+
+        expresion = texto
+
+        prefijos = [
+            "calcula ",
+            "calcular ",
+            "cuánto es ",
+            "cuanto es ",
+            "cuánto da ",
+            "cuanto da ",
+            "resuelve ",
+            "resuelve la operación ",
+            "resuelve la operacion ",
+        ]
+
+        for prefijo in prefijos:
+
+            if expresion.startswith(prefijo):
+
+                expresion = expresion[
+                    len(prefijo):
+                ].strip()
+
+                break
+
+        # ----------------------------------------------
+        # RAÍZ CUADRADA
+        # ----------------------------------------------
+
+        patrones_raiz = [
+            "raíz cuadrada de ",
+            "raiz cuadrada de ",
+            "raíz de ",
+            "raiz de ",
+        ]
+
+        for patron in patrones_raiz:
+
+            if expresion.startswith(patron):
+
+                numero = expresion[
+                    len(patron):
+                ].strip()
+
+                if numero:
+
+                    try:
+                        resultado = self.calculadora.raiz(
+                            numero
+                        )
+
+                        return {
+                            "tipo": "calculadora",
+                            "datos": {
+                                "operacion": f"√{numero}",
+                                "resultado": resultado
+                            }
+                        }
+
+                    except ValueError:
+                        return {
+                            "tipo": "calculadora_error",
+                            "datos": {}
+                        }
+
+        # ----------------------------------------------
+        # CONVERTIR OPERACIONES ESCRITAS
+        # ----------------------------------------------
+
+        expresion = expresion.replace(
+            " por ",
+            "*"
+        )
+
+        expresion = expresion.replace(
+            " multiplicado por ",
+            "*"
+        )
+
+        expresion = expresion.replace(
+            " dividido entre ",
+            "/"
+        )
+
+        expresion = expresion.replace(
+            " dividido por ",
+            "/"
+        )
+
+        # ----------------------------------------------
+        # PORCENTAJE
+        # ----------------------------------------------
+
+        coincidencia = re.fullmatch(
+            r"(\d+(?:[.,]\d+)?)\s*%\s*de\s*(\d+(?:[.,]\d+)?)",
+            expresion
+        )
+
+        if coincidencia:
+
+            porcentaje = float(
+                coincidencia.group(1).replace(",", ".")
+            )
+
+            numero = float(
+                coincidencia.group(2).replace(",", ".")
+            )
+
+            resultado = (
+                porcentaje / 100
+            ) * numero
+
+            return {
+                "tipo": "calculadora",
+                "datos": {
+                    "operacion": expresion,
+                    "resultado": self.calculadora._formatear(
+                        resultado
+                    )
+                }
+            }
+
+        # ----------------------------------------------
+        # OPERACIÓN MATEMÁTICA
+        # ----------------------------------------------
+
+        if not re.fullmatch(
+            r"[0-9+\-*/().%\s]+",
+            expresion
+        ):
+            return None
+
+        # Tiene que contener al menos
+        # un operador matemático
+
+        if not re.search(
+            r"[+\-*/%]",
+            expresion
+        ):
+            return None
+
+        try:
+
+            resultado = self.calculadora.calcular(
+                expresion
+            )
+
+            return {
+                "tipo": "calculadora",
+                "datos": {
+                    "operacion": expresion,
+                    "resultado": resultado
+                }
+            }
+
+        except ValueError:
+
+            return {
+                "tipo": "calculadora_error",
+                "datos": {}
+            }
+
     # ==================================================
     # GENERAR RESPUESTA
     # ==================================================
@@ -287,6 +463,48 @@ class Respuesta:
     ):
 
         mensaje_lower = mensaje.lower().strip()
+
+                # ==================================================
+        # CALCULADORA
+        # ==================================================
+
+        accion_calculadora = self.detectar_calculadora(
+            mensaje
+        )
+
+        if accion_calculadora:
+
+            tipo = accion_calculadora["tipo"]
+
+            if tipo == "calculadora":
+
+                operacion = accion_calculadora[
+                    "datos"
+                ]["operacion"]
+
+                resultado = accion_calculadora[
+                    "datos"
+                ]["resultado"]
+
+                return {
+                    "respuesta": (
+                        f"El resultado de {operacion} "
+                        f"es {resultado}."
+                    ),
+                    "accion": accion_calculadora,
+                    "requiere_confirmacion": False
+                }
+
+            if tipo == "calculadora_error":
+
+                return {
+                    "respuesta": (
+                        "No pude realizar esa operación. "
+                        "Revisa los números e inténtalo nuevamente."
+                    ),
+                    "accion": accion_calculadora,
+                    "requiere_confirmacion": False
+                }
 
         # ==================================================
         # SPOTIFY
