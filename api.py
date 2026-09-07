@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
 from cerebro import Cerebro
 
 
 app = Flask(__name__)
+
 CORS(app)
 
 
@@ -11,17 +13,37 @@ CORS(app)
 # CEREBROS ACTIVOS
 # ==================================================
 
-# Guarda un Cerebro por cada usuario.
-# Esto permite conservar el estado de herramientas
-# como temporizadores mientras el servidor está activo.
+# Un Cerebro por usuario.
+#
+# Esto permite conservar:
+# - temporizadores
+# - estado emocional
+# - personalidad
+# - herramientas
+#
+# mientras el servidor permanezca encendido.
 
 cerebros = {}
+
+
+# ==================================================
+# NOTIFICACIONES
+# ==================================================
+
+# Las notificaciones quedan almacenadas
+# temporalmente hasta que la web las consulte.
+
 notificaciones = {}
 
+
+# ==================================================
+# RECIBIR NOTIFICACIÓN
+# ==================================================
 
 def recibir_notificacion(uid, notificacion):
 
     if uid not in notificaciones:
+
         notificaciones[uid] = []
 
     notificaciones[uid].append(
@@ -33,6 +55,10 @@ def recibir_notificacion(uid, notificacion):
         uid
     )
 
+
+# ==================================================
+# OBTENER CEREBRO
+# ==================================================
 
 def obtener_cerebro(uid):
 
@@ -61,6 +87,7 @@ def obtener_cerebro(uid):
 
     return cerebros[uid]
 
+
 # ==================================================
 # RUTA PRINCIPAL DE LUMY
 # ==================================================
@@ -74,73 +101,94 @@ def lumy():
         print(">>> NUEVA PETICIÓN A LUMY")
         print("================================")
 
-        # ------------------------------------------
-        # RECIBIR DATOS
-        # ------------------------------------------
-
         datos = request.get_json()
 
-        print(">>> DATOS RECIBIDOS:", datos)
+        print(
+            ">>> DATOS RECIBIDOS:",
+            datos
+        )
 
         if not datos:
+
             return jsonify({
                 "error": "No se recibieron datos."
             }), 400
 
-
         # ------------------------------------------
-        # OBTENER UID Y MENSAJE
+        # UID
         # ------------------------------------------
 
         uid = datos.get("uid")
+
+        # ------------------------------------------
+        # MENSAJE
+        # ------------------------------------------
+
         mensaje = datos.get("mensaje")
 
-        print(">>> UID:", uid)
-        print(">>> MENSAJE:", mensaje)
+        print(
+            ">>> UID:",
+            uid
+        )
 
+        print(
+            ">>> MENSAJE:",
+            mensaje
+        )
 
         # ------------------------------------------
         # VALIDAR UID
         # ------------------------------------------
 
         if not uid:
+
             return jsonify({
                 "error": "Falta el UID del usuario."
             }), 400
-
 
         # ------------------------------------------
         # VALIDAR MENSAJE
         # ------------------------------------------
 
         if not mensaje:
+
             return jsonify({
                 "error": "Falta el mensaje."
             }), 400
-
 
         # ------------------------------------------
         # OBTENER CEREBRO
         # ------------------------------------------
 
-        print(">>> OBTENIENDO CEREBRO...")
+        print(
+            ">>> OBTENIENDO CEREBRO..."
+        )
 
         cerebro = obtener_cerebro(uid)
 
-        print(">>> CEREBRO LISTO")
-
+        print(
+            ">>> CEREBRO LISTO"
+        )
 
         # ------------------------------------------
-        # PROCESAR MENSAJE
+        # PROCESAR
         # ------------------------------------------
 
-        print(">>> PROCESANDO MENSAJE...")
+        print(
+            ">>> PROCESANDO MENSAJE..."
+        )
 
-        resultado = cerebro.procesar(mensaje)
+        resultado = cerebro.procesar(
+            mensaje
+        )
 
-        print(">>> RESULTADO GENERADO:")
-        print(resultado)
+        print(
+            ">>> RESULTADO GENERADO:"
+        )
 
+        print(
+            resultado
+        )
 
         # ------------------------------------------
         # PROCESAR RESULTADO
@@ -171,27 +219,32 @@ def lumy():
 
             requiere_confirmacion = False
 
-
         # ------------------------------------------
         # MOSTRAR RESULTADO
         # ------------------------------------------
 
-        print(">>> RESPUESTA:", respuesta)
+        print(
+            ">>> RESPUESTA:",
+            respuesta
+        )
 
-        print(">>> ACCIÓN:", accion)
+        print(
+            ">>> ACCIÓN:",
+            accion
+        )
 
         print(
             ">>> REQUIERE CONFIRMACIÓN:",
             requiere_confirmacion
         )
 
+        print(
+            ">>> ENVIANDO RESPUESTA A LA WEB"
+        )
 
         # ------------------------------------------
-        # ENVIAR RESPUESTA A LA WEB
+        # RESPONDER
         # ------------------------------------------
-
-        print(">>> ENVIANDO RESPUESTA A LA WEB")
-
 
         return jsonify({
 
@@ -204,25 +257,37 @@ def lumy():
 
         })
 
-
-    # ==================================================
-    # MANEJO DE ERRORES
-    # ==================================================
-
     except Exception as error:
 
         print("\n================================")
-        print("ERROR EN LUMY:")
-        print(error)
-        print("================================")
 
+        print(
+            "ERROR EN LUMY:"
+        )
+
+        print(
+            error
+        )
+
+        print(
+            "================================"
+        )
 
         return jsonify({
 
             "error": str(error)
 
         }), 500
-@app.route("/notificaciones/<uid>", methods=["GET"])
+
+
+# ==================================================
+# OBTENER NOTIFICACIONES
+# ==================================================
+
+@app.route(
+    "/notificaciones/<uid>",
+    methods=["GET"]
+)
 def obtener_notificaciones(uid):
 
     try:
@@ -232,12 +297,27 @@ def obtener_notificaciones(uid):
             []
         )
 
-        # Vaciar las notificaciones después
-        # de entregarlas a la web
+        # ------------------------------------------
+        # ENTREGAR NOTIFICACIONES
+        # ------------------------------------------
+
         notificaciones[uid] = []
 
+        print(
+            ">>> NOTIFICACIONES ENVIADAS A:",
+            uid
+        )
+
+        print(
+            ">>> CANTIDAD:",
+            len(pendientes)
+        )
+
         return jsonify({
-            "notificaciones": pendientes
+
+            "notificaciones":
+                pendientes
+
         })
 
     except Exception as error:
@@ -248,8 +328,11 @@ def obtener_notificaciones(uid):
         )
 
         return jsonify({
+
             "error": str(error)
+
         }), 500
+
 
 # ==================================================
 # INICIAR SERVIDOR
@@ -257,16 +340,29 @@ def obtener_notificaciones(uid):
 
 if __name__ == "__main__":
 
-    print("================================")
-    print("       LUMY - API")
-    print("================================")
+    print(
+        "================================"
+    )
 
-    print("Servidor iniciado.")
+    print(
+        "       LUMY - API"
+    )
 
-    print("Esperando conexiones...")
+    print(
+        "================================"
+    )
 
-    print("================================")
+    print(
+        "Servidor iniciado."
+    )
 
+    print(
+        "Esperando conexiones..."
+    )
+
+    print(
+        "================================"
+    )
 
     app.run(
 

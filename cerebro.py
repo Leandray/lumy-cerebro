@@ -21,6 +21,10 @@ class Cerebro:
             notificar=self.enviar_notificacion
         )
 
+    # ==================================================
+    # ENVIAR NOTIFICACIÓN
+    # ==================================================
+
     def enviar_notificacion(self, notificacion):
 
         if self.notificar:
@@ -29,6 +33,10 @@ class Cerebro:
                 self.uid,
                 notificacion
             )
+
+    # ==================================================
+    # PROCESAR MENSAJE
+    # ==================================================
 
     def procesar(self, mensaje):
 
@@ -49,6 +57,10 @@ class Cerebro:
             self.memoria
         )
 
+        # ----------------------------------------------
+        # RESPUESTA CON ACCIÓN
+        # ----------------------------------------------
+
         if isinstance(resultado, dict):
 
             texto_respuesta = resultado.get(
@@ -62,6 +74,10 @@ class Cerebro:
             )
 
             return resultado
+
+        # ----------------------------------------------
+        # RESPUESTA NORMAL
+        # ----------------------------------------------
 
         self.memoria.guardar_mensaje(
             mensaje,

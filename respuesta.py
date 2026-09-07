@@ -3,7 +3,6 @@ from ia.ia import IA
 from datetime import datetime, timedelta
 
 from herramientas.calculadora import Calculadora
-
 from herramientas.temporizador import Temporizador
 
 import re
@@ -19,25 +18,27 @@ class Respuesta:
         self.calculadora = Calculadora()
 
         self.temporizador = Temporizador(
-        al_terminar=self.notificar_temporizador
+            al_terminar=self.notificar_temporizador
         )
+
+    # ==================================================
+    # NOTIFICACIÓN DEL TEMPORIZADOR
+    # ==================================================
 
     def notificar_temporizador(self):
 
         print(
-        "[LUMY] 🔔 El temporizador ha terminado."
+            "[LUMY] 🔔 El temporizador ha terminado."
         )
 
         if self.notificar:
 
             self.notificar({
-            "tipo": "temporizador",
-            "titulo": "Temporizador terminado",
-            "mensaje": "¡Tu temporizador ha terminado!",
-            "icono": "⏱️"
-        })
-
-    
+                "tipo": "temporizador",
+                "titulo": "Temporizador terminado",
+                "mensaje": "¡Tu temporizador ha terminado!",
+                "icono": "⏱️"
+            })
 
     # ==================================================
     # DETECTAR ACCIONES DE SPOTIFY
@@ -46,10 +47,6 @@ class Respuesta:
     def detectar_accion_spotify(self, mensaje):
 
         texto = mensaje.lower().strip()
-
-        # ----------------------------------------------
-        # ABRIR SPOTIFY
-        # ----------------------------------------------
 
         patrones_abrir = [
             "abre spotify",
@@ -62,16 +59,13 @@ class Respuesta:
         ]
 
         if any(patron in texto for patron in patrones_abrir):
+
             return {
                 "tipo": "spotify_abrir",
                 "datos": {
                     "url": "https://open.spotify.com/"
                 }
             }
-
-        # ----------------------------------------------
-        # BUSCAR EN SPOTIFY
-        # ----------------------------------------------
 
         patrones_buscar = [
             "busca ",
@@ -90,7 +84,6 @@ class Respuesta:
 
                 if consulta:
 
-                    # Quitar "en spotify" del final
                     consulta = re.sub(
                         r"\s+en spotify\s*$",
                         "",
@@ -106,10 +99,6 @@ class Respuesta:
                                 "consulta": consulta
                             }
                         }
-
-        # ----------------------------------------------
-        # BUSCAR MÚSICA
-        # ----------------------------------------------
 
         patrones_musica = [
             "busca música de ",
@@ -148,10 +137,6 @@ class Respuesta:
                                 "consulta": consulta
                             }
                         }
-
-        # ----------------------------------------------
-        # PLAYLIST
-        # ----------------------------------------------
 
         patrones_playlist = [
             "busca una playlist de ",
@@ -197,10 +182,6 @@ class Respuesta:
 
         texto = mensaje.lower().strip()
 
-        # ----------------------------------------------
-        # CREAR EVENTO
-        # ----------------------------------------------
-
         patrones_crear = [
             "agenda ",
             "agéndame ",
@@ -221,10 +202,6 @@ class Respuesta:
         if not es_creacion:
             return None
 
-        # ----------------------------------------------
-        # DETECTAR HORA
-        # ----------------------------------------------
-
         coincidencia_hora = re.search(
             r'(\d{1,2})(?::(\d{2}))?\s*(?:de la\s*)?(am|pm)?',
             texto
@@ -233,7 +210,9 @@ class Respuesta:
         if not coincidencia_hora:
             return None
 
-        hora = int(coincidencia_hora.group(1))
+        hora = int(
+            coincidencia_hora.group(1)
+        )
 
         minutos = int(
             coincidencia_hora.group(2) or 0
@@ -246,10 +225,6 @@ class Respuesta:
 
         if periodo == "am" and hora == 12:
             hora = 0
-
-        # ----------------------------------------------
-        # DETECTAR FECHA
-        # ----------------------------------------------
 
         ahora = datetime.now()
 
@@ -269,15 +244,7 @@ class Respuesta:
             microsecond=0
         )
 
-        # ----------------------------------------------
-        # DURACIÓN POR DEFECTO: 1 HORA
-        # ----------------------------------------------
-
         fin = inicio + timedelta(hours=1)
-
-        # ----------------------------------------------
-        # OBTENER TÍTULO
-        # ----------------------------------------------
 
         titulo = "Evento"
 
@@ -303,17 +270,13 @@ class Respuesta:
             }
         }
 
-        # ==================================================
+    # ==================================================
     # DETECTAR CALCULADORA
     # ==================================================
 
     def detectar_calculadora(self, mensaje):
 
         texto = mensaje.lower().strip()
-
-        # ----------------------------------------------
-        # QUITAR PALABRAS INNECESARIAS
-        # ----------------------------------------------
 
         expresion = texto
 
@@ -339,10 +302,6 @@ class Respuesta:
 
                 break
 
-        # ----------------------------------------------
-        # RAÍZ CUADRADA
-        # ----------------------------------------------
-
         patrones_raiz = [
             "raíz cuadrada de ",
             "raiz cuadrada de ",
@@ -361,6 +320,7 @@ class Respuesta:
                 if numero:
 
                     try:
+
                         resultado = self.calculadora.raiz(
                             numero
                         )
@@ -374,22 +334,19 @@ class Respuesta:
                         }
 
                     except ValueError:
+
                         return {
                             "tipo": "calculadora_error",
                             "datos": {}
                         }
 
-        # ----------------------------------------------
-        # CONVERTIR OPERACIONES ESCRITAS
-        # ----------------------------------------------
-
         expresion = expresion.replace(
-            " por ",
+            " multiplicado por ",
             "*"
         )
 
         expresion = expresion.replace(
-            " multiplicado por ",
+            " por ",
             "*"
         )
 
@@ -402,10 +359,6 @@ class Respuesta:
             " dividido por ",
             "/"
         )
-
-        # ----------------------------------------------
-        # PORCENTAJE
-        # ----------------------------------------------
 
         coincidencia = re.fullmatch(
             r"(\d+(?:[.,]\d+)?)\s*%\s*de\s*(\d+(?:[.,]\d+)?)",
@@ -436,18 +389,11 @@ class Respuesta:
                 }
             }
 
-        # ----------------------------------------------
-        # OPERACIÓN MATEMÁTICA
-        # ----------------------------------------------
-
         if not re.fullmatch(
             r"[0-9+\-*/().%\s]+",
             expresion
         ):
             return None
-
-        # Tiene que contener al menos
-        # un operador matemático
 
         if not re.search(
             r"[+\-*/%]",
@@ -476,17 +422,13 @@ class Respuesta:
                 "datos": {}
             }
 
-        # ==================================================
+    # ==================================================
     # DETECTAR TEMPORIZADOR
     # ==================================================
 
     def detectar_temporizador(self, mensaje):
 
         texto = mensaje.lower().strip()
-
-        # ----------------------------------------------
-        # CANCELAR
-        # ----------------------------------------------
 
         patrones_cancelar = [
             "cancela el temporizador",
@@ -506,10 +448,6 @@ class Respuesta:
                 "tipo": "temporizador_cancelar",
                 "datos": {}
             }
-
-        # ----------------------------------------------
-        # CONSULTAR
-        # ----------------------------------------------
 
         patrones_consultar = [
             "cuánto falta en el temporizador",
@@ -532,10 +470,6 @@ class Respuesta:
                 "datos": {}
             }
 
-        # ----------------------------------------------
-        # CREAR
-        # ----------------------------------------------
-
         if not any(
             palabra in texto
             for palabra in [
@@ -544,10 +478,6 @@ class Respuesta:
             ]
         ):
             return None
-
-        # ----------------------------------------------
-        # SEGUNDOS
-        # ----------------------------------------------
 
         coincidencia = re.search(
             r"(\d+(?:[.,]\d+)?)\s*segundos?",
@@ -566,10 +496,6 @@ class Respuesta:
                     "segundos": int(segundos)
                 }
             }
-
-        # ----------------------------------------------
-        # MINUTOS
-        # ----------------------------------------------
 
         coincidencia = re.search(
             r"(\d+(?:[.,]\d+)?)\s*minutos?",
@@ -590,10 +516,6 @@ class Respuesta:
                     )
                 }
             }
-
-        # ----------------------------------------------
-        # HORAS
-        # ----------------------------------------------
 
         coincidencia = re.search(
             r"(\d+(?:[.,]\d+)?)\s*horas?",
@@ -631,7 +553,7 @@ class Respuesta:
 
         mensaje_lower = mensaje.lower().strip()
 
-                # ==================================================
+        # ==================================================
         # CALCULADORA
         # ==================================================
 
@@ -673,7 +595,7 @@ class Respuesta:
                     "requiere_confirmacion": False
                 }
 
-                # ==================================================
+        # ==================================================
         # TEMPORIZADOR
         # ==================================================
 
@@ -684,10 +606,6 @@ class Respuesta:
         if accion_temporizador:
 
             tipo = accion_temporizador["tipo"]
-
-            # ----------------------------------------------
-            # CREAR
-            # ----------------------------------------------
 
             if tipo == "temporizador_crear":
 
@@ -732,10 +650,6 @@ class Respuesta:
                     "requiere_confirmacion": False
                 }
 
-            # ----------------------------------------------
-            # CONSULTAR
-            # ----------------------------------------------
-
             if tipo == "temporizador_consultar":
 
                 restante = (
@@ -776,10 +690,6 @@ class Respuesta:
                     "accion": accion_temporizador,
                     "requiere_confirmacion": False
                 }
-
-            # ----------------------------------------------
-            # CANCELAR
-            # ----------------------------------------------
 
             if tipo == "temporizador_cancelar":
 
@@ -829,7 +739,9 @@ class Respuesta:
 
             if tipo == "spotify_buscar":
 
-                consulta = accion_spotify["datos"]["consulta"]
+                consulta = accion_spotify[
+                    "datos"
+                ]["consulta"]
 
                 return {
                     "respuesta": (
@@ -842,7 +754,9 @@ class Respuesta:
 
             if tipo == "spotify_playlist":
 
-                consulta = accion_spotify["datos"]["consulta"]
+                consulta = accion_spotify[
+                    "datos"
+                ]["consulta"]
 
                 return {
                     "respuesta": (
@@ -869,7 +783,9 @@ class Respuesta:
 
             fecha_texto = inicio.strftime("%d/%m/%Y")
             hora_texto = inicio.strftime("%H:%M")
-            titulo = accion_calendario["datos"]["titulo"]
+            titulo = accion_calendario[
+                "datos"
+            ]["titulo"]
 
             return {
                 "respuesta": (
@@ -891,16 +807,12 @@ class Respuesta:
         pronombres = usuario.get("pronombres")
 
         # ==================================================
-        # DETECTAR EMOCIÓN DEL MENSAJE
+        # DETECTAR EMOCIÓN
         # ==================================================
 
         emocion_detectada = emociones.detectar(
             mensaje
         )
-
-        # ==================================================
-        # OBTENER EMOCIÓN ACTUAL
-        # ==================================================
 
         emocion_actual = emociones.emocion_actual()
 
@@ -931,7 +843,9 @@ class Respuesta:
 
             if mensaje_lower.startswith(patron):
 
-                nuevo_nombre = mensaje[len(patron):].strip()
+                nuevo_nombre = mensaje[
+                    len(patron):
+                ].strip()
 
                 if nuevo_nombre:
 
@@ -950,7 +864,7 @@ class Respuesta:
                     )
 
         # ==================================================
-        # IDENTIDAD — CAMBIAR PRONOMBRES
+        # IDENTIDAD — PRONOMBRES MASCULINOS
         # ==================================================
 
         patrones_masculinos = [
@@ -978,6 +892,10 @@ class Respuesta:
                 "contigo a partir de ahora."
             )
 
+        # ==================================================
+        # IDENTIDAD — PRONOMBRES FEMENINOS
+        # ==================================================
+
         patrones_femeninos = [
             "mis pronombres son femeninos",
             "mis pronombres son femenino",
@@ -1000,6 +918,10 @@ class Respuesta:
                 "Entendido. Usaré pronombres femeninos "
                 "contigo a partir de ahora."
             )
+
+        # ==================================================
+        # IDENTIDAD — PRONOMBRES NEUTROS
+        # ==================================================
 
         patrones_neutros = [
             "mis pronombres son neutros",
@@ -1035,7 +957,9 @@ class Respuesta:
                 + len("mis pronombres son ")
             )
 
-            nuevos_pronombres = mensaje[inicio:].strip()
+            nuevos_pronombres = mensaje[
+                inicio:
+            ].strip()
 
             if nuevos_pronombres:
 
@@ -1050,7 +974,7 @@ class Respuesta:
                 )
 
         # ==================================================
-        # GUARDAR PREFERENCIA: COLOR FAVORITO
+        # COLOR FAVORITO
         # ==================================================
 
         if (
@@ -1076,7 +1000,9 @@ class Respuesta:
                     + len("mi color preferido es")
                 )
 
-            color = mensaje[inicio:].strip()
+            color = mensaje[
+                inicio:
+            ].strip()
 
             if color:
 
@@ -1125,7 +1051,7 @@ class Respuesta:
             )
 
         # ==================================================
-        # GUARDAR RECUERDO: PROYECTO LUMY
+        # PROYECTO LUMY
         # ==================================================
 
         if (
@@ -1152,7 +1078,7 @@ class Respuesta:
             )
 
         # ==================================================
-        # GUARDAR GUSTOS / PREFERENCIAS
+        # GUSTOS
         # ==================================================
 
         patrones_gusto = [
@@ -1169,7 +1095,9 @@ class Respuesta:
 
             if mensaje_lower.startswith(patron):
 
-                contenido = mensaje[len(patron):].strip()
+                contenido = mensaje[
+                    len(patron):
+                ].strip()
 
                 if contenido:
 
@@ -1192,7 +1120,7 @@ class Respuesta:
                     )
 
         # ==================================================
-        # GUARDAR COSAS QUE NO LE GUSTAN
+        # COSAS QUE NO LE GUSTAN
         # ==================================================
 
         patrones_no_gusta = [
@@ -1205,7 +1133,9 @@ class Respuesta:
 
             if mensaje_lower.startswith(patron):
 
-                contenido = mensaje[len(patron):].strip()
+                contenido = mensaje[
+                    len(patron):
+                ].strip()
 
                 if contenido:
 
@@ -1223,7 +1153,7 @@ class Respuesta:
                     )
 
         # ==================================================
-        # PREGUNTAR POR RECUERDOS
+        # RECUERDOS
         # ==================================================
 
         if (
