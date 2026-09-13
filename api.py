@@ -536,6 +536,39 @@ for ruta in app.url_map.iter_rules():
 
 print("===================================\n")
 
+# ============================================================
+# OBTENER ACCESS TOKEN VÁLIDO DE YOUTUBE
+# ============================================================
+
+@app.route("/oauth/youtube/token", methods=["GET"])
+def obtener_token_youtube():
+    try:
+        uid = request.args.get("uid")
+
+        if not uid:
+            return jsonify({
+                "error": "Falta el UID del usuario."
+            }), 400
+
+        from oauth_google import obtener_access_token
+
+        token = obtener_access_token(
+            uid,
+            "youtube"
+        )
+
+        return jsonify({
+            "access_token": token
+        })
+
+    except Exception as error:
+        print("❌ ERROR OBTENIENDO TOKEN DE YOUTUBE:")
+        print(error)
+
+        return jsonify({
+            "error": str(error)
+        }), 401
+
 if __name__ == "__main__":
 
     print(
