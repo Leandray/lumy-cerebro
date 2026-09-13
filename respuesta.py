@@ -1,256 +1,191 @@
 from ia.ia import IA
-
 from datetime import datetime, timedelta
-
-from herramientas.calculadora import Calculadora
-from herramientas.temporizador import Temporizador
-
 import re
 
 
 class Respuesta:
 
-    def __init__(self, notificar=None):
-
-        self.notificar = notificar
-
+    def __init__(self):
         self.ia = IA()
-        self.calculadora = Calculadora()
 
-        self.temporizador = Temporizador(
-            al_terminar=self.notificar_temporizador
-        )
+    # ==========================================================
+    # DETECTAR ACCIONES DE MÚSICA
+    # ==========================================================
 
-    # ==================================================
-    # NOTIFICACIÓN DEL TEMPORIZADOR
-    # ==================================================
+    def detectar_accion_musica(self, mensaje):
 
-    def notificar_temporizador(self):
+        texto = mensaje.lower().strip()
 
-        print(
-            "[LUMY] 🔔 El temporizador ha terminado."
-        )
+        # ======================================================
+        # ABRIR YOUTUBE MUSIC
+        # ======================================================
 
-        if self.notificar:
+        patrones_youtube = [
+            "abre youtube music",
+            "abrir youtube music",
+            "abre youtube",
+            "abrir youtube"
+        ]
 
-            self.notificar({
-                "tipo": "temporizador",
-                "titulo": "Temporizador terminado",
-                "mensaje": "¡Tu temporizador ha terminado!",
-                "icono": "⏱️"
-            })
+        for patron in patrones_youtube:
 
-# ==================================================
-# DETECTAR ACCIONES DE MÚSICA
-# ==================================================
+            if texto.startswith(patron):
 
-def detectar_accion_musica(self, mensaje):
-    texto = mensaje.lower().strip()
-
-    # ==================================================
-    # ABRIR SPOTIFY
-    # ==================================================
-
-    patrones_abrir_spotify = [
-        "abre spotify",
-        "abrir spotify",
-        "abre mi spotify",
-        "abrir mi spotify",
-        "quiero abrir spotify",
-        "pon spotify",
-        "abrir la aplicación de spotify"
-    ]
-
-    if any(
-        patron in texto
-        for patron in patrones_abrir_spotify
-    ):
-        return {
-            "tipo": "spotify_abrir",
-            "datos": {
-                "url": "https://open.spotify.com/"
-            }
-        }
-
-    # ==================================================
-    # REPRODUCIR MÚSICA
-    # ==================================================
-
-    patrones_reproducir = [
-        "reproduce ",
-        "reproducir ",
-        "pon ",
-        "poner ",
-        "quiero escuchar ",
-        "quiero oír ",
-        "quiero oir ",
-        "escucha ",
-        "escuchar "
-    ]
-
-    for patron in patrones_reproducir:
-
-        if texto.startswith(patron):
-
-            consulta = mensaje[
-                len(patron):
-            ].strip()
-
-            if consulta:
-
-                # Quitar referencias explícitas
-                # a YouTube / YouTube Music
-                consulta = re.sub(
-                    r"\s+en youtube music$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                consulta = re.sub(
-                    r"\s+en youtube$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                consulta = re.sub(
-                    r"\s+en spotify$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                if consulta:
-
-                    return {
-                        "tipo": "musica_reproducir",
-                        "datos": {
-                            "consulta": consulta
-                        }
+                return {
+                    "tipo": "musica_abrir",
+                    "datos": {
+                        "servicio": "youtube"
                     }
+                }
 
-    # ==================================================
-    # BUSCAR MÚSICA
-    # ==================================================
+        # ======================================================
+        # ABRIR SPOTIFY
+        # ======================================================
 
-    patrones_buscar_musica = [
-        "busca música de ",
-        "busca musica de ",
-        "buscar música de ",
-        "buscar musica de ",
-        "busca la canción ",
-        "busca la cancion ",
-        "buscar la canción ",
-        "buscar la cancion ",
-        "búscame la canción ",
-        "buscame la cancion "
-    ]
+        patrones_spotify = [
+            "abre spotify",
+            "abrir spotify"
+        ]
 
-    for patron in patrones_buscar_musica:
+        for patron in patrones_spotify:
 
-        if texto.startswith(patron):
+            if texto.startswith(patron):
 
-            consulta = mensaje[
-                len(patron):
-            ].strip()
-
-            if consulta:
-
-                consulta = re.sub(
-                    r"\s+en youtube music$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                consulta = re.sub(
-                    r"\s+en youtube$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                consulta = re.sub(
-                    r"\s+en spotify$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
-
-                if consulta:
-
-                    return {
-                        "tipo": "musica_buscar",
-                        "datos": {
-                            "consulta": consulta
-                        }
+                return {
+                    "tipo": "musica_abrir",
+                    "datos": {
+                        "servicio": "spotify"
                     }
+                }
 
-    # ==================================================
-    # PLAYLIST
-    # ==================================================
+        # ======================================================
+        # REPRODUCIR UNA CANCIÓN
+        # ======================================================
 
-    patrones_playlist = [
-        "busca una playlist de ",
-        "busca playlist de ",
-        "buscar una playlist de ",
-        "buscar playlist de ",
-        "quiero una playlist de ",
-        "pon una playlist de ",
-        "reproduce una playlist de "
-    ]
+        patrones_reproducir = [
+            "reproduce ",
+            "reproducir ",
+            "pon ",
+            "poner ",
+            "quiero escuchar ",
+            "quiero oír ",
+            "quiero oir ",
+            "escucha ",
+            "escuchar "
+        ]
 
-    for patron in patrones_playlist:
+        for patron in patrones_reproducir:
 
-        if texto.startswith(patron):
+            if texto.startswith(patron):
 
-            consulta = mensaje[
-                len(patron):
-            ].strip()
+                consulta = mensaje[len(patron):].strip()
 
-            if consulta:
+                if not consulta:
+                    return None
 
-                consulta = re.sub(
-                    r"\s+en youtube music$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
+                # ----------------------------------------------
+                # QUITAR SERVICIO DEL FINAL
+                # ----------------------------------------------
 
-                consulta = re.sub(
-                    r"\s+en youtube$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
+                sufijos = [
+                    " en youtube music",
+                    " en youtube",
+                    " en spotify"
+                ]
 
-                consulta = re.sub(
-                    r"\s+en spotify$",
-                    "",
-                    consulta,
-                    flags=re.IGNORECASE
-                ).strip()
+                for sufijo in sufijos:
 
-                if consulta:
+                    if consulta.lower().endswith(sufijo):
 
-                    return {
-                        "tipo": "musica_playlist",
-                        "datos": {
-                            "consulta": consulta
-                        }
+                        consulta = consulta[
+                            : -len(sufijo)
+                        ].strip()
+
+                        break
+
+                if not consulta:
+                    return None
+
+                return {
+                    "tipo": "musica_reproducir",
+                    "datos": {
+                        "consulta": consulta
                     }
+                }
 
-    return None
+        # ======================================================
+        # BUSCAR MÚSICA
+        # ======================================================
 
+        patrones_buscar = [
+            "busca música ",
+            "buscar música ",
+            "busca musica ",
+            "buscar musica ",
+            "busca la canción ",
+            "buscar la canción ",
+            "busca la cancion ",
+            "buscar la cancion "
+        ]
 
-    # ==================================================
+        for patron in patrones_buscar:
+
+            if texto.startswith(patron):
+
+                consulta = mensaje[len(patron):].strip()
+
+                if not consulta:
+                    return None
+
+                return {
+                    "tipo": "musica_buscar",
+                    "datos": {
+                        "consulta": consulta
+                    }
+                }
+
+        # ======================================================
+        # PLAYLIST
+        # ======================================================
+
+        patrones_playlist = [
+            "abre mi playlist ",
+            "abrir mi playlist ",
+            "abre la playlist ",
+            "abrir la playlist ",
+            "reproduce mi playlist ",
+            "reproducir mi playlist "
+        ]
+
+        for patron in patrones_playlist:
+
+            if texto.startswith(patron):
+
+                playlist = mensaje[len(patron):].strip()
+
+                if not playlist:
+                    return None
+
+                return {
+                    "tipo": "musica_playlist",
+                    "datos": {
+                        "consulta": playlist
+                    }
+                }
+
+        return None
+
+    # ==========================================================
     # DETECTAR ACCIONES DE CALENDARIO
-    # ==================================================
+    # ==========================================================
 
     def detectar_accion_calendario(self, mensaje):
 
         texto = mensaje.lower().strip()
+
+        # ------------------------------------------------------
+        # CREAR EVENTO
+        # ------------------------------------------------------
 
         patrones_crear = [
             "agenda ",
@@ -271,6 +206,10 @@ def detectar_accion_musica(self, mensaje):
 
         if not es_creacion:
             return None
+
+        # ------------------------------------------------------
+        # DETECTAR HORA
+        # ------------------------------------------------------
 
         coincidencia_hora = re.search(
             r'(\d{1,2})(?::(\d{2}))?\s*(?:de la\s*)?(am|pm)?',
@@ -296,15 +235,22 @@ def detectar_accion_musica(self, mensaje):
         if periodo == "am" and hora == 12:
             hora = 0
 
+        # ------------------------------------------------------
+        # DETECTAR FECHA
+        # ------------------------------------------------------
+
         ahora = datetime.now()
 
         if "mañana" in texto:
+
             fecha = ahora + timedelta(days=1)
 
         elif "hoy" in texto:
+
             fecha = ahora
 
         else:
+
             fecha = ahora + timedelta(days=1)
 
         inicio = fecha.replace(
@@ -314,20 +260,38 @@ def detectar_accion_musica(self, mensaje):
             microsecond=0
         )
 
+        # ------------------------------------------------------
+        # DURACIÓN POR DEFECTO
+        # ------------------------------------------------------
+
         fin = inicio + timedelta(hours=1)
+
+        # ------------------------------------------------------
+        # OBTENER TÍTULO
+        # ------------------------------------------------------
 
         titulo = "Evento"
 
-        if "reunión" in texto or "reunion" in texto:
+        if (
+            "reunión" in texto
+            or "reunion" in texto
+        ):
+
             titulo = "Reunión"
 
-        elif "cumpleaños" in texto or "cumpleanos" in texto:
+        elif (
+            "cumpleaños" in texto
+            or "cumpleanos" in texto
+        ):
+
             titulo = "Cumpleaños"
 
         elif "cita" in texto:
+
             titulo = "Cita"
 
         elif "clase" in texto:
+
             titulo = "Clase"
 
         return {
@@ -340,278 +304,112 @@ def detectar_accion_musica(self, mensaje):
             }
         }
 
-    # ==================================================
+    # ==========================================================
     # DETECTAR CALCULADORA
-    # ==================================================
+    # ==========================================================
 
     def detectar_calculadora(self, mensaje):
 
         texto = mensaje.lower().strip()
 
-        expresion = texto
-
-        prefijos = [
-            "calcula ",
-            "calcular ",
+        patrones = [
             "cuánto es ",
             "cuanto es ",
-            "cuánto da ",
-            "cuanto da ",
+            "calcula ",
+            "calcular ",
             "resuelve ",
-            "resuelve la operación ",
-            "resuelve la operacion ",
+            "resolver "
         ]
 
-        for prefijo in prefijos:
+        for patron in patrones:
 
-            if expresion.startswith(prefijo):
+            if texto.startswith(patron):
 
-                expresion = expresion[
-                    len(prefijo):
-                ].strip()
-
-                break
-
-        patrones_raiz = [
-            "raíz cuadrada de ",
-            "raiz cuadrada de ",
-            "raíz de ",
-            "raiz de ",
-        ]
-
-        for patron in patrones_raiz:
-
-            if expresion.startswith(patron):
-
-                numero = expresion[
+                expresion = mensaje[
                     len(patron):
                 ].strip()
 
-                if numero:
+                if expresion:
 
-                    try:
-
-                        resultado = self.calculadora.raiz(
-                            numero
-                        )
-
-                        return {
-                            "tipo": "calculadora",
-                            "datos": {
-                                "operacion": f"√{numero}",
-                                "resultado": resultado
-                            }
+                    return {
+                        "tipo": "calcular",
+                        "datos": {
+                            "expresion": expresion
                         }
+                    }
 
-                    except ValueError:
+        return None
 
-                        return {
-                            "tipo": "calculadora_error",
-                            "datos": {}
-                        }
-
-        expresion = expresion.replace(
-            " multiplicado por ",
-            "*"
-        )
-
-        expresion = expresion.replace(
-            " por ",
-            "*"
-        )
-
-        expresion = expresion.replace(
-            " dividido entre ",
-            "/"
-        )
-
-        expresion = expresion.replace(
-            " dividido por ",
-            "/"
-        )
-
-        coincidencia = re.fullmatch(
-            r"(\d+(?:[.,]\d+)?)\s*%\s*de\s*(\d+(?:[.,]\d+)?)",
-            expresion
-        )
-
-        if coincidencia:
-
-            porcentaje = float(
-                coincidencia.group(1).replace(",", ".")
-            )
-
-            numero = float(
-                coincidencia.group(2).replace(",", ".")
-            )
-
-            resultado = (
-                porcentaje / 100
-            ) * numero
-
-            return {
-                "tipo": "calculadora",
-                "datos": {
-                    "operacion": expresion,
-                    "resultado": self.calculadora._formatear(
-                        resultado
-                    )
-                }
-            }
-
-        if not re.fullmatch(
-            r"[0-9+\-*/().%\s]+",
-            expresion
-        ):
-            return None
-
-        if not re.search(
-            r"[+\-*/%]",
-            expresion
-        ):
-            return None
-
-        try:
-
-            resultado = self.calculadora.calcular(
-                expresion
-            )
-
-            return {
-                "tipo": "calculadora",
-                "datos": {
-                    "operacion": expresion,
-                    "resultado": resultado
-                }
-            }
-
-        except ValueError:
-
-            return {
-                "tipo": "calculadora_error",
-                "datos": {}
-            }
-
-    # ==================================================
+    # ==========================================================
     # DETECTAR TEMPORIZADOR
-    # ==================================================
+    # ==========================================================
 
     def detectar_temporizador(self, mensaje):
 
         texto = mensaje.lower().strip()
 
-        patrones_cancelar = [
-            "cancela el temporizador",
-            "cancelar el temporizador",
-            "cancela mi temporizador",
-            "cancelar mi temporizador",
-            "detén el temporizador",
-            "deten el temporizador"
+        patrones = [
+            "pon un temporizador de ",
+            "poner un temporizador de ",
+            "crea un temporizador de ",
+            "crear un temporizador de ",
+            "temporizador de ",
+            "temporizador "
         ]
 
-        if any(
-            patron in texto
-            for patron in patrones_cancelar
-        ):
+        for patron in patrones:
 
-            return {
-                "tipo": "temporizador_cancelar",
-                "datos": {}
-            }
+            if texto.startswith(patron):
 
-        patrones_consultar = [
-            "cuánto falta en el temporizador",
-            "cuanto falta en el temporizador",
-            "cuánto falta para que termine",
-            "cuanto falta para que termine",
-            "consulta el temporizador",
-            "consultar el temporizador",
-            "cómo va el temporizador",
-            "como va el temporizador"
-        ]
+                tiempo_texto = mensaje[
+                    len(patron):
+                ].strip()
 
-        if any(
-            patron in texto
-            for patron in patrones_consultar
-        ):
+                if not tiempo_texto:
+                    return None
 
-            return {
-                "tipo": "temporizador_consultar",
-                "datos": {}
-            }
+                coincidencia = re.search(
+                    r'(\d+(?:\.\d+)?)\s*(segundos?|s|minutos?|m|horas?|h)',
+                    tiempo_texto.lower()
+                )
 
-        if not any(
-            palabra in texto
-            for palabra in [
-                "temporizador",
-                "temporizador de"
-            ]
-        ):
-            return None
+                if not coincidencia:
+                    return None
 
-        coincidencia = re.search(
-            r"(\d+(?:[.,]\d+)?)\s*segundos?",
-            texto
-        )
+                cantidad = float(
+                    coincidencia.group(1)
+                )
 
-        if coincidencia:
+                unidad = coincidencia.group(2)
 
-            segundos = float(
-                coincidencia.group(1).replace(",", ".")
-            )
+                if unidad.startswith("s"):
 
-            return {
-                "tipo": "temporizador_crear",
-                "datos": {
-                    "segundos": int(segundos)
+                    segundos = cantidad
+
+                elif unidad.startswith("m"):
+
+                    segundos = cantidad * 60
+
+                elif unidad.startswith("h"):
+
+                    segundos = cantidad * 3600
+
+                else:
+
+                    return None
+
+                return {
+                    "tipo": "temporizador",
+                    "datos": {
+                        "segundos": segundos
+                    }
                 }
-            }
-
-        coincidencia = re.search(
-            r"(\d+(?:[.,]\d+)?)\s*minutos?",
-            texto
-        )
-
-        if coincidencia:
-
-            minutos = float(
-                coincidencia.group(1).replace(",", ".")
-            )
-
-            return {
-                "tipo": "temporizador_crear",
-                "datos": {
-                    "segundos": int(
-                        minutos * 60
-                    )
-                }
-            }
-
-        coincidencia = re.search(
-            r"(\d+(?:[.,]\d+)?)\s*horas?",
-            texto
-        )
-
-        if coincidencia:
-
-            horas = float(
-                coincidencia.group(1).replace(",", ".")
-            )
-
-            return {
-                "tipo": "temporizador_crear",
-                "datos": {
-                    "segundos": int(
-                        horas * 3600
-                    )
-                }
-            }
 
         return None
 
-    # ==================================================
+    # ==========================================================
     # GENERAR RESPUESTA
-    # ==================================================
+    # ==========================================================
 
     def generar(
         self,
@@ -623,9 +421,9 @@ def detectar_accion_musica(self, mensaje):
 
         mensaje_lower = mensaje.lower().strip()
 
-        # ==================================================
+        # ======================================================
         # CALCULADORA
-        # ==================================================
+        # ======================================================
 
         accion_calculadora = self.detectar_calculadora(
             mensaje
@@ -633,41 +431,53 @@ def detectar_accion_musica(self, mensaje):
 
         if accion_calculadora:
 
-            tipo = accion_calculadora["tipo"]
+            expresion = accion_calculadora[
+                "datos"
+            ][
+                "expresion"
+            ]
 
-            if tipo == "calculadora":
+            try:
 
-                operacion = accion_calculadora[
-                    "datos"
-                ]["operacion"]
+                # Importamos aquí para evitar problemas
+                # si Calculadora cambia de ubicación.
 
-                resultado = accion_calculadora[
-                    "datos"
-                ]["resultado"]
+                from herramientas.calculadora import Calculadora
+
+                calculadora = Calculadora()
+
+                resultado = calculadora.calcular(
+                    expresion
+                )
 
                 return {
                     "respuesta": (
-                        f"El resultado de {operacion} "
-                        f"es {resultado}."
+                        f"El resultado es {resultado}."
                     ),
                     "accion": accion_calculadora,
                     "requiere_confirmacion": False
                 }
 
-            if tipo == "calculadora_error":
+            except Exception as error:
+
+                print(
+                    "[LUMY] Error en calculadora:"
+                )
+
+                print(error)
 
                 return {
                     "respuesta": (
-                        "No pude realizar esa operación. "
-                        "Revisa los números e inténtalo nuevamente."
+                        f"No pude calcular "
+                        f"'{expresion}'."
                     ),
-                    "accion": accion_calculadora,
+                    "accion": None,
                     "requiere_confirmacion": False
                 }
 
-        # ==================================================
+        # ======================================================
         # TEMPORIZADOR
-        # ==================================================
+        # ======================================================
 
         accion_temporizador = self.detectar_temporizador(
             mensaje
@@ -675,165 +485,131 @@ def detectar_accion_musica(self, mensaje):
 
         if accion_temporizador:
 
-            tipo = accion_temporizador["tipo"]
+            segundos = accion_temporizador[
+                "datos"
+            ][
+                "segundos"
+            ]
 
-            if tipo == "temporizador_crear":
+            return {
+                "respuesta": (
+                    f"De acuerdo. Pondré un temporizador "
+                    f"de {segundos:g} segundos."
+                ),
+                "accion": accion_temporizador,
+                "requiere_confirmacion": False
+            }
 
-                segundos = accion_temporizador[
+        # ======================================================
+        # MÚSICA
+        # ======================================================
+
+        accion_musica = self.detectar_accion_musica(
+            mensaje
+        )
+
+        if accion_musica:
+
+            tipo = accion_musica["tipo"]
+
+            # --------------------------------------------------
+            # REPRODUCIR
+            # --------------------------------------------------
+
+            if tipo == "musica_reproducir":
+
+                consulta = accion_musica[
                     "datos"
-                ]["segundos"]
-
-                self.temporizador.crear(
-                    segundos
-                )
-
-                minutos = segundos // 60
-                segundos_restantes = segundos % 60
-
-                if minutos > 0:
-
-                    if segundos_restantes > 0:
-
-                        duracion = (
-                            f"{minutos} minutos "
-                            f"y {segundos_restantes} segundos"
-                        )
-
-                    else:
-
-                        duracion = (
-                            f"{minutos} minutos"
-                        )
-
-                else:
-
-                    duracion = (
-                        f"{segundos} segundos"
-                    )
+                ][
+                    "consulta"
+                ]
 
                 return {
                     "respuesta": (
-                        f"Listo. He iniciado un "
-                        f"temporizador de {duracion}."
+                        f"Claro. Voy a reproducir "
+                        f"'{consulta}'."
                     ),
-                    "accion": accion_temporizador,
+                    "accion": accion_musica,
                     "requiere_confirmacion": False
                 }
 
-            if tipo == "temporizador_consultar":
+            # --------------------------------------------------
+            # ABRIR SERVICIO
+            # --------------------------------------------------
 
-                restante = (
-                    self.temporizador.consultar()
-                )
+            if tipo == "musica_abrir":
 
-                if restante is None:
+                servicio = accion_musica[
+                    "datos"
+                ][
+                    "servicio"
+                ]
+
+                if servicio == "youtube":
 
                     return {
                         "respuesta": (
-                            "No hay ningún temporizador activo."
+                            "Voy a abrir YouTube."
                         ),
-                        "accion": accion_temporizador,
-                        "requiere_confirmacion": False
-                    }
-
-                minutos = restante // 60
-                segundos = restante % 60
-
-                if minutos > 0:
-
-                    tiempo = (
-                        f"{minutos} minutos "
-                        f"y {segundos} segundos"
-                    )
-
-                else:
-
-                    tiempo = (
-                        f"{segundos} segundos"
-                    )
-
-                return {
-                    "respuesta": (
-                        f"Al temporizador le quedan "
-                        f"{tiempo}."
-                    ),
-                    "accion": accion_temporizador,
-                    "requiere_confirmacion": False
-                }
-
-            if tipo == "temporizador_cancelar":
-
-                cancelado = (
-                    self.temporizador.cancelar()
-                )
-
-                if cancelado:
-
-                    respuesta = (
-                        "Listo. He cancelado "
-                        "el temporizador."
-                    )
-
-                else:
-
-                    respuesta = (
-                        "No hay ningún temporizador "
-                        "activo para cancelar."
-                    )
-
-                return {
-                    "respuesta": respuesta,
-                    "accion": accion_temporizador,
-                    "requiere_confirmacion": False
-                }
-            # ==================================================
-            # MÚSICA
-            # ==================================================
-            accion_musica = self.detectar_accion_musica(
-                mensaje
-            )
-            if accion_musica:
-                tipo = accion_musica["tipo"]
-                if tipo == "spotify_abrir": 
-                    return {
-                       "respuesta": "Claro. Abriendo Spotify.",
                         "accion": accion_musica,
                         "requiere_confirmacion": False
                     }
-                    if tipo == "musica_reproducir":
-                        consulta = accion_musica["datos"]["consulta"]
-                        return {
-                            "respuesta": (
-                                f"Claro. Voy a reproducir "
-                                f"'{consulta}'."
-                                ),
-                            "accion": accion_musica,
-                            "requiere_confirmacion": False
-                            }
-                        if tipo == "musica_buscar":
-                            consulta = accion_musica["datos"]["consulta"]
-                            return {
-                                "respuesta": (
-                                    f"Claro. Voy a buscar "
-                                    f"'{consulta}'."
-                                    ),
-                                "accion": accion_musica,
-                                "requiere_confirmacion": False
-                            }
-                            if tipo == "musica_playlist":
-                                consulta = accion_musica["datos"]["consulta"]
-                                return {
-                                    "respuesta": (
-                                        f"Claro. Voy a buscar "
-                                        f"una playlist de '{consulta}'."
-                                        ),
-                                    "accion": accion_musica,
-                                    "requiere_confirmacion": False
-                                    }
 
-        # ==================================================
+                if servicio == "spotify":
+
+                    return {
+                        "respuesta": (
+                            "Voy a abrir Spotify."
+                        ),
+                        "accion": accion_musica,
+                        "requiere_confirmacion": False
+                    }
+
+            # --------------------------------------------------
+            # BUSCAR
+            # --------------------------------------------------
+
+            if tipo == "musica_buscar":
+
+                consulta = accion_musica[
+                    "datos"
+                ][
+                    "consulta"
+                ]
+
+                return {
+                    "respuesta": (
+                        f"Voy a buscar "
+                        f"'{consulta}'."
+                    ),
+                    "accion": accion_musica,
+                    "requiere_confirmacion": False
+                }
+
+            # --------------------------------------------------
+            # PLAYLIST
+            # --------------------------------------------------
+
+            if tipo == "musica_playlist":
+
+                consulta = accion_musica[
+                    "datos"
+                ][
+                    "consulta"
+                ]
+
+                return {
+                    "respuesta": (
+                        f"Voy a abrir la playlist "
+                        f"'{consulta}'."
+                    ),
+                    "accion": accion_musica,
+                    "requiere_confirmacion": False
+                }
+
+        # ======================================================
         # CALENDARIO
-        # ==================================================
+        # ======================================================
 
         accion_calendario = self.detectar_accion_calendario(
             mensaje
@@ -842,14 +618,26 @@ def detectar_accion_musica(self, mensaje):
         if accion_calendario:
 
             inicio = datetime.fromisoformat(
-                accion_calendario["datos"]["inicio"]
+                accion_calendario[
+                    "datos"
+                ][
+                    "inicio"
+                ]
             )
 
-            fecha_texto = inicio.strftime("%d/%m/%Y")
-            hora_texto = inicio.strftime("%H:%M")
+            fecha_texto = inicio.strftime(
+                "%d/%m/%Y"
+            )
+
+            hora_texto = inicio.strftime(
+                "%H:%M"
+            )
+
             titulo = accion_calendario[
                 "datos"
-            ]["titulo"]
+            ][
+                "titulo"
+            ]
 
             return {
                 "respuesta": (
@@ -861,18 +649,23 @@ def detectar_accion_musica(self, mensaje):
                 "requiere_confirmacion": True
             }
 
-        # ==================================================
+        # ======================================================
         # OBTENER USUARIO
-        # ==================================================
+        # ======================================================
 
         usuario = memoria.obtener_usuario()
 
-        nombre = usuario.get("nombre")
-        pronombres = usuario.get("pronombres")
+        nombre = usuario.get(
+            "nombre"
+        )
 
-        # ==================================================
+        pronombres = usuario.get(
+            "pronombres"
+        )
+
+        # ======================================================
         # DETECTAR EMOCIÓN
-        # ==================================================
+        # ======================================================
 
         emocion_detectada = emociones.detectar(
             mensaje
@@ -881,20 +674,23 @@ def detectar_accion_musica(self, mensaje):
         emocion_actual = emociones.emocion_actual()
 
         print(
-            f"[LUMY] Emoción detectada: {emocion_detectada}"
+            f"[LUMY] Emoción detectada: "
+            f"{emocion_detectada}"
         )
 
         print(
-            f"[LUMY] Emoción actual: {emocion_actual}"
+            f"[LUMY] Emoción actual: "
+            f"{emocion_actual}"
         )
 
         print(
-            f"[LUMY] Estado: {emociones.obtener_estado()}"
+            f"[LUMY] Estado: "
+            f"{emociones.obtener_estado()}"
         )
 
-        # ==================================================
+        # ======================================================
         # IDENTIDAD — CAMBIAR NOMBRE
-        # ==================================================
+        # ======================================================
 
         patrones_nombre = [
             "me llamo ",
@@ -922,14 +718,19 @@ def detectar_accion_musica(self, mensaje):
                         5
                     )
 
-                    return (
-                        f"Entendido. A partir de ahora te llamaré "
-                        f"{nuevo_nombre}."
-                    )
+                    return {
+                        "respuesta": (
+                            f"Entendido. "
+                            f"A partir de ahora te llamaré "
+                            f"{nuevo_nombre}."
+                        ),
+                        "accion": None,
+                        "requiere_confirmacion": False
+                    }
 
-        # ==================================================
+        # ======================================================
         # IDENTIDAD — PRONOMBRES MASCULINOS
-        # ==================================================
+        # ======================================================
 
         patrones_masculinos = [
             "mis pronombres son masculinos",
@@ -951,14 +752,18 @@ def detectar_accion_musica(self, mensaje):
                 pronombres="masculinos"
             )
 
-            return (
-                "Entendido. Usaré pronombres masculinos "
-                "contigo a partir de ahora."
-            )
+            return {
+                "respuesta": (
+                    "Entendido. Usaré pronombres "
+                    "masculinos contigo a partir de ahora."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # IDENTIDAD — PRONOMBRES FEMENINOS
-        # ==================================================
+        # ======================================================
 
         patrones_femeninos = [
             "mis pronombres son femeninos",
@@ -978,22 +783,24 @@ def detectar_accion_musica(self, mensaje):
                 pronombres="femeninos"
             )
 
-            return (
-                "Entendido. Usaré pronombres femeninos "
-                "contigo a partir de ahora."
-            )
+            return {
+                "respuesta": (
+                    "Entendido. Usaré pronombres "
+                    "femeninos contigo a partir de ahora."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # IDENTIDAD — PRONOMBRES NEUTROS
-        # ==================================================
+        # ======================================================
 
         patrones_neutros = [
             "mis pronombres son neutros",
             "mis pronombres son neutro",
-            "mis pronombres son elle",
             "quiero que uses pronombres neutros conmigo",
-            "quiero que uses pronombres neutro conmigo",
-            "quiero que uses pronombres elle conmigo"
+            "quiero que uses pronombres neutro conmigo"
         ]
 
         if any(
@@ -1005,41 +812,18 @@ def detectar_accion_musica(self, mensaje):
                 pronombres="neutros"
             )
 
-            return (
-                "Entendido. Usaré pronombres neutros "
-                "contigo a partir de ahora."
-            )
+            return {
+                "respuesta": (
+                    "Entendido. Usaré lenguaje neutro "
+                    "contigo a partir de ahora."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        if mensaje_lower.startswith(
-            "mis pronombres son "
-        ):
-
-            inicio = (
-                mensaje_lower.find(
-                    "mis pronombres son "
-                )
-                + len("mis pronombres son ")
-            )
-
-            nuevos_pronombres = mensaje[
-                inicio:
-            ].strip()
-
-            if nuevos_pronombres:
-
-                memoria.establecer_usuario(
-                    pronombres=nuevos_pronombres
-                )
-
-                return (
-                    f"Entendido. Tus pronombres son "
-                    f"{nuevos_pronombres}. "
-                    "Los tendré en cuenta."
-                )
-
-        # ==================================================
-        # COLOR FAVORITO
-        # ==================================================
+        # ======================================================
+        # GUARDAR COLOR FAVORITO
+        # ======================================================
 
         if (
             "mi color favorito es" in mensaje_lower
@@ -1048,20 +832,18 @@ def detectar_accion_musica(self, mensaje):
 
             if "mi color favorito es" in mensaje_lower:
 
-                inicio = (
-                    mensaje_lower.find(
-                        "mi color favorito es"
-                    )
-                    + len("mi color favorito es")
+                inicio = mensaje_lower.find(
+                    "mi color favorito es"
+                ) + len(
+                    "mi color favorito es"
                 )
 
             else:
 
-                inicio = (
-                    mensaje_lower.find(
-                        "mi color preferido es"
-                    )
-                    + len("mi color preferido es")
+                inicio = mensaje_lower.find(
+                    "mi color preferido es"
+                ) + len(
+                    "mi color preferido es"
                 )
 
             color = mensaje[
@@ -1080,15 +862,19 @@ def detectar_accion_musica(self, mensaje):
                     5
                 )
 
-                return (
-                    f"¡Entendido! "
-                    f"Tu color favorito es {color}. "
-                    "Lo recordaré."
-                )
+                return {
+                    "respuesta": (
+                        f"Entendido. "
+                        f"Tu color favorito es {color}. "
+                        f"Lo recordaré."
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-        # ==================================================
+        # ======================================================
         # PREGUNTAR COLOR FAVORITO
-        # ==================================================
+        # ======================================================
 
         if (
             "cuál es mi color favorito" in mensaje_lower
@@ -1103,20 +889,28 @@ def detectar_accion_musica(self, mensaje):
 
             if color:
 
-                return (
-                    f"Tu color favorito es {color}. "
-                    "Lo recuerdo."
-                )
+                return {
+                    "respuesta": (
+                        f"Tu color favorito es {color}. "
+                        f"Lo recuerdo."
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-            return (
-                "Todavía no sé cuál es tu color favorito. "
-                "Puedes decírmelo diciendo: "
-                "'Mi color favorito es...'"
-            )
+            return {
+                "respuesta": (
+                    "Todavía no sé cuál es tu color favorito. "
+                    "Puedes decírmelo diciendo: "
+                    "'Mi color favorito es...'"
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
-        # PROYECTO LUMY
-        # ==================================================
+        # ======================================================
+        # GUARDAR RECUERDO — PROYECTO LUMY
+        # ======================================================
 
         if (
             "estoy construyendo a lumy" in mensaje_lower
@@ -1136,14 +930,18 @@ def detectar_accion_musica(self, mensaje):
                 5
             )
 
-            return (
-                "Sí. Recordaré que estás "
-                "construyendo a LUMY."
-            )
+            return {
+                "respuesta": (
+                    "Sí. Recordaré que estás "
+                    "construyendo a LUMY."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
-        # GUSTOS
-        # ==================================================
+        # ======================================================
+        # GUARDAR GUSTOS / PREFERENCIAS
+        # ======================================================
 
         patrones_gusto = [
             "me gusta ",
@@ -1166,7 +964,8 @@ def detectar_accion_musica(self, mensaje):
                 if contenido:
 
                     recuerdo = (
-                        f"Al usuario le gusta {contenido}."
+                        f"Al usuario le gusta "
+                        f"{contenido}."
                     )
 
                     memoria.guardar_recuerdo(
@@ -1178,14 +977,19 @@ def detectar_accion_musica(self, mensaje):
                         5
                     )
 
-                    return (
-                        f"Lo tendré en cuenta. "
-                        f"Recuerdo que te gusta {contenido}."
-                    )
+                    return {
+                        "respuesta": (
+                            f"Lo tendré en cuenta. "
+                            f"Recuerdo que te gusta "
+                            f"{contenido}."
+                        ),
+                        "accion": None,
+                        "requiere_confirmacion": False
+                    }
 
-        # ==================================================
-        # COSAS QUE NO LE GUSTAN
-        # ==================================================
+        # ======================================================
+        # GUARDAR COSAS QUE NO LE GUSTAN
+        # ======================================================
 
         patrones_no_gusta = [
             "no me gusta ",
@@ -1204,27 +1008,33 @@ def detectar_accion_musica(self, mensaje):
                 if contenido:
 
                     recuerdo = (
-                        f"Al usuario no le gusta {contenido}."
+                        f"Al usuario no le gusta "
+                        f"{contenido}."
                     )
 
                     memoria.guardar_recuerdo(
                         recuerdo
                     )
 
-                    return (
-                        f"Entendido. "
-                        f"Recordaré que no te gusta {contenido}."
-                    )
+                    return {
+                        "respuesta": (
+                            f"Entendido. "
+                            f"Recordaré que no te gusta "
+                            f"{contenido}."
+                        ),
+                        "accion": None,
+                        "requiere_confirmacion": False
+                    }
 
-        # ==================================================
-        # RECUERDOS
-        # ==================================================
+        # ======================================================
+        # PREGUNTAR RECUERDOS
+        # ======================================================
 
         if (
             "qué recuerdas de mí" in mensaje_lower
             or "que recuerdas de mi" in mensaje_lower
-            or "qué recuerdas sobre mí" in mensaje_lower
-            or "que recuerdas sobre mi" in mensaje_lower
+            or "qué recuerdas de mi" in mensaje_lower
+            or "que recuerdas de mí" in mensaje_lower
         ):
 
             recuerdos = memoria.obtener_recuerdos()
@@ -1236,19 +1046,27 @@ def detectar_accion_musica(self, mensaje):
                     for recuerdo in recuerdos
                 )
 
-                return (
-                    "Esto es lo que recuerdo de ti:\n\n"
-                    f"{lista}"
-                )
+                return {
+                    "respuesta": (
+                        "Esto es lo que recuerdo de ti:\n\n"
+                        f"{lista}"
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-            return (
-                "Todavía no tengo recuerdos permanentes "
-                "sobre ti."
-            )
+            return {
+                "respuesta": (
+                    "Todavía no tengo recuerdos "
+                    "permanentes sobre ti."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # PREGUNTAR NOMBRE
-        # ==================================================
+        # ======================================================
 
         if (
             "cómo me llamo" in mensaje_lower
@@ -1259,17 +1077,27 @@ def detectar_accion_musica(self, mensaje):
 
             if nombre:
 
-                return f"Te llamas {nombre}."
+                return {
+                    "respuesta": (
+                        f"Te llamas {nombre}."
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-            return (
-                "Todavía no sé cómo te llamas. "
-                "Puedes decírmelo diciendo: "
-                "'Me llamo...'"
-            )
+            return {
+                "respuesta": (
+                    "Todavía no sé cómo te llamas. "
+                    "Puedes decírmelo diciendo: "
+                    "'Me llamo...'"
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # PREGUNTAR PRONOMBRES
-        # ==================================================
+        # ======================================================
 
         if (
             "qué pronombres uso" in mensaje_lower
@@ -1280,18 +1108,26 @@ def detectar_accion_musica(self, mensaje):
 
             if pronombres:
 
-                return (
-                    f"Tus pronombres registrados son "
-                    f"{pronombres}."
-                )
+                return {
+                    "respuesta": (
+                        f"Usas {pronombres}."
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-            return (
-                "Todavía no me has indicado tus pronombres."
-            )
+            return {
+                "respuesta": (
+                    "Todavía no me has indicado "
+                    "tus pronombres."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # AGRADECIMIENTO
-        # ==================================================
+        # ======================================================
 
         if "gracias" in mensaje_lower:
 
@@ -1300,14 +1136,18 @@ def detectar_accion_musica(self, mensaje):
                 5
             )
 
-            return (
-                "De nada. "
-                "Me alegra poder ayudarte."
-            )
+            return {
+                "respuesta": (
+                    "De nada. "
+                    "Me alegra poder ayudarte."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # SALUDOS
-        # ==================================================
+        # ======================================================
 
         saludos = [
             "hola",
@@ -1329,19 +1169,29 @@ def detectar_accion_musica(self, mensaje):
 
             if nombre:
 
-                return (
-                    f"Hola, {nombre}. "
-                    "Qué bueno escucharte. ¿Qué hacemos hoy?"
-                )
+                return {
+                    "respuesta": (
+                        f"Hola, {nombre}. "
+                        "Qué bueno escucharte. "
+                        "¿Qué hacemos hoy?"
+                    ),
+                    "accion": None,
+                    "requiere_confirmacion": False
+                }
 
-            return (
-                "Hola. "
-                "Qué bueno escucharte. ¿Qué hacemos hoy?"
-            )
+            return {
+                "respuesta": (
+                    "Hola. "
+                    "Qué bueno escucharte. "
+                    "¿Qué hacemos hoy?"
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # DESPEDIDAS
-        # ==================================================
+        # ======================================================
 
         despedidas = [
             "adiós",
@@ -1358,14 +1208,18 @@ def detectar_accion_musica(self, mensaje):
             for despedida in despedidas
         ):
 
-            return (
-                "Hasta luego. "
-                "Estaré aquí cuando vuelvas."
-            )
+            return {
+                "respuesta": (
+                    "Hasta luego. "
+                    "Estaré aquí cuando vuelvas."
+                ),
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
-        # ==================================================
+        # ======================================================
         # IA REAL
-        # ==================================================
+        # ======================================================
 
         respuesta = self.ia.generar(
             mensaje,
@@ -1374,4 +1228,8 @@ def detectar_accion_musica(self, mensaje):
             memoria
         )
 
-        return respuesta
+        return {
+            "respuesta": respuesta,
+            "accion": None,
+            "requiere_confirmacion": False
+        }
