@@ -217,10 +217,39 @@ class Respuesta:
                 }
 
         return None
+    
 
     # ==========================================================
     # DETECTAR ACCIONES DE CALENDARIO
     # ==========================================================
+    
+    def detectar_consulta_calendario(self, mensaje):
+        texto = mensaje.lower().strip()
+        patrones = [
+            "qué eventos tengo",
+            "que eventos tengo",
+            "qué tengo en mi calendario",
+            "que tengo en mi calendario",
+            "qué eventos hay",
+            "que eventos hay",
+            "mis eventos",
+            "mi calendario",
+            "revisa mi calendario",
+            "revisar mi calendario",
+            "consulta mi calendario",
+            "consultar mi calendario",
+            "qué tengo agendado",
+            "que tengo agendado"
+        ]
+        
+        if any(patron in texto for patron in patrones):
+            return {
+                "tipo": "consultar_eventos",
+                "datos": {
+                    "cantidad": 10
+                }
+            }
+            return None
 
     def detectar_accion_calendario(self, mensaje):
 
@@ -650,6 +679,15 @@ class Respuesta:
         # ======================================================
         # CALENDARIO
         # ======================================================
+        accion_consulta_calendario = self.detectar_consulta_calendario(
+            mensaje
+            )
+        if accion_consulta_calendario:
+            return {
+                "respuesta": "Voy a revisar tu calendario.",
+                "accion": accion_consulta_calendario,
+                "requiere_confirmacion": False
+            }
 
         accion_calendario = self.detectar_accion_calendario(
             mensaje
