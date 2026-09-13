@@ -1,7 +1,13 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
-
 from cerebro import Cerebro
+
+from oauth_google import (
+    construir_url_autorizacion,
+    obtener_state,
+    intercambiar_code,
+    guardar_oauth
+)
 
 
 app = Flask(__name__)
@@ -334,9 +340,201 @@ def obtener_notificaciones(uid):
         }), 500
 
 
+# ============================================================
+# GOOGLE OAUTH - YOUTUBE
+# ============================================================
+
+@app.route("/oauth/youtube/start", methods=["GET"])
+def oauth_youtube_start():
+    try:
+        uid = request.args.get("uid")
+
+        if not uid:
+            return jsonify({
+                "error": "Falta el UID del usuario."
+            }), 400
+
+        url = construir_url_autorizacion(
+            uid,
+            "youtube"
+        )
+
+        return redirect(url)
+
+    except Exception as error:
+        print("❌ ERROR INICIANDO OAUTH YOUTUBE:")
+        print(error)
+
+        return jsonify({
+            "error": str(error)
+        }), 500
+
+
+@app.route("/oauth/youtube/callback", methods=["GET"])
+def oauth_youtube_callback():
+    try:
+        code = request.args.get("code")
+        state = request.args.get("state")
+        error = request.args.get("error")
+
+        if error:
+            print(
+                "❌ Google rechazó OAuth YouTube:",
+                error
+            )
+
+            return redirect(
+                "https://lumy-c1805.web.app/index.html"
+                "?youtube_error="
+                + error
+            )
+
+        if not code:
+            return "❌ No se recibió authorization code.", 400
+
+        datos_state = obtener_state(
+            state,
+            "youtube"
+        )
+
+        if not datos_state:
+            return "❌ State OAuth inválido o expirado.", 400
+
+        uid = datos_state["uid"]
+
+        tokens = intercambiar_code(
+            code,
+            "https://lumy-cerebro.onrender.com/oauth/youtube/callback"
+        )
+
+        guardar_oauth(
+            uid,
+            "youtube",
+            tokens
+        )
+
+        print(
+            "✅ YouTube conectado correctamente:",
+            uid
+        )
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?youtube_connected=true"
+        )
+
+    except Exception as error:
+        print("❌ ERROR EN CALLBACK YOUTUBE:")
+        print(error)
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?youtube_error=true"
+        )
+
+
+# ============================================================
+# GOOGLE OAUTH - CALENDAR
+# ============================================================
+
+@app.route("/oauth/calendar/start", methods=["GET"])
+def oauth_calendar_start():
+    try:
+        uid = request.args.get("uid")
+
+        if not uid:
+            return jsonify({
+                "error": "Falta el UID del usuario."
+            }), 400
+
+        url = construir_url_autorizacion(
+            uid,
+            "calendar"
+        )
+
+        return redirect(url)
+
+    except Exception as error:
+        print("❌ ERROR INICIANDO OAUTH CALENDAR:")
+        print(error)
+
+        return jsonify({
+            "error": str(error)
+        }), 500
+
+
+@app.route("/oauth/calendar/callback", methods=["GET"])
+def oauth_calendar_callback():
+    try:
+        code = request.args.get("code")
+        state = request.args.get("state")
+        error = request.args.get("error")
+
+        if error:
+            print(
+                "❌ Google rechazó OAuth Calendar:",
+                error
+            )
+
+            return redirect(
+                "https://lumy-c1805.web.app/index.html"
+                "?calendar_error="
+                + error
+            )
+
+        if not code:
+            return "❌ No se recibió authorization code.", 400
+
+        datos_state = obtener_state(
+            state,
+            "calendar"
+        )
+
+        if not datos_state:
+            return "❌ State OAuth inválido o expirado.", 400
+
+        uid = datos_state["uid"]
+
+        tokens = intercambiar_code(
+            code,
+            "https://lumy-cerebro.onrender.com/oauth/calendar/callback"
+        )
+
+        guardar_oauth(
+            uid,
+            "calendar",
+            tokens
+        )
+
+        print(
+            "✅ Google Calendar conectado correctamente:",
+            uid
+        )
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?calendar_connected=true"
+        )
+
+    except Exception as error:
+        print("❌ ERROR EN CALLBACK CALENDAR:")
+        print(error)
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?calendar_error=true"
+        )
+
 # ==================================================
 # INICIAR SERVIDOR
 # ==================================================
+
+print("\n========== RUTAS DE LUMY ==========")
+
+for ruta in app.url_map.iter_rules():
+    print(ruta)
+
+print("===================================\n")
 
 if __name__ == "__main__":
 
