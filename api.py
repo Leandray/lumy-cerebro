@@ -568,6 +568,35 @@ def obtener_token_youtube():
         return jsonify({
             "error": str(error)
         }), 401
+        
+@app.route("/oauth/calendar/token", methods=["GET"])
+def obtener_token_calendar():
+    try:
+        uid = request.args.get("uid")
+
+        if not uid:
+            return jsonify({
+                "error": "Falta el UID del usuario."
+            }), 400
+
+        from oauth_google import obtener_access_token
+
+        token = obtener_access_token(
+            uid,
+            "calendar"
+        )
+
+        return jsonify({
+            "access_token": token
+        })
+
+    except Exception as error:
+        print("❌ ERROR OBTENIENDO TOKEN DE GOOGLE CALENDAR:")
+        print(error)
+
+        return jsonify({
+            "error": str(error)
+        }), 401
 
 if __name__ == "__main__":
 
