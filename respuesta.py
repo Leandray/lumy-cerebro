@@ -5,52 +5,52 @@ import re
 
 class Respuesta:
 
-   def __init__(self, notificar=None):
+    def __init__(self, notificar=None):
 
-    self.notificar = notificar
+        self.notificar = notificar
+        self.ia = IA()
 
-    self.ia = IA()
+        # ======================================================
+        # TEMPORIZADOR
+        # ======================================================
 
-    # ======================================================
-    # TEMPORIZADOR
-    # ======================================================
+        try:
+            from herramientas.temporizador import Temporizador
 
-    try:
-        from herramientas.temporizador import Temporizador
+            self.temporizador = Temporizador(
+                al_terminar=self.notificar_temporizador
+            )
 
-        self.temporizador = Temporizador(
-            al_terminar=self.notificar_temporizador
-        )
+        except Exception as error:
 
-    except Exception as error:
+            print(
+                "[LUMY] ⚠️ No se pudo inicializar "
+                "el temporizador:"
+            )
+
+            print(error)
+
+            self.temporizador = None
+
+    # ==========================================================
+    # NOTIFICAR CUANDO TERMINA EL TEMPORIZADOR
+    # ==========================================================
+
+    def notificar_temporizador(self):
 
         print(
-            "[LUMY] ⚠️ No se pudo inicializar "
-            "el temporizador:"
+            "[LUMY] 🔔 El temporizador ha terminado."
         )
 
-        print(error)
+        if self.notificar:
 
-        self.temporizador = None
-        
-    # ==========================================================
-# NOTIFICAR CUANDO TERMINA EL TEMPORIZADOR
-# ==========================================================
+            self.notificar({
+                "tipo": "temporizador",
+                "titulo": "Temporizador terminado",
+                "mensaje": "¡Tu temporizador ha terminado!",
+                "icono": "⏱️"
+            })
 
-def notificar_temporizador(self):
-
-    print(
-        "[LUMY] 🔔 El temporizador ha terminado."
-    )
-
-    if self.notificar:
-
-        self.notificar({
-            "tipo": "temporizador",
-            "titulo": "Temporizador terminado",
-            "mensaje": "¡Tu temporizador ha terminado!",
-            "icono": "⏱️"
-        })
     # ==========================================================
     # DETECTAR ACCIONES DE MÚSICA
     # ==========================================================
@@ -60,7 +60,7 @@ def notificar_temporizador(self):
         texto = mensaje.lower().strip()
 
         # ======================================================
-        # ABRIR YOUTUBE MUSIC
+        # ABRIR YOUTUBE MUSIC / YOUTUBE
         # ======================================================
 
         patrones_youtube = [
@@ -126,9 +126,9 @@ def notificar_temporizador(self):
                 if not consulta:
                     return None
 
-                # ----------------------------------------------
+                # --------------------------------------------------
                 # QUITAR SERVICIO DEL FINAL
-                # ----------------------------------------------
+                # --------------------------------------------------
 
                 sufijos = [
                     " en youtube music",
@@ -141,7 +141,7 @@ def notificar_temporizador(self):
                     if consulta.lower().endswith(sufijo):
 
                         consulta = consulta[
-                            : -len(sufijo)
+                            :-len(sufijo)
                         ].strip()
 
                         break
@@ -481,9 +481,6 @@ def notificar_temporizador(self):
             ]
 
             try:
-
-                # Importamos aquí para evitar problemas
-                # si Calculadora cambia de ubicación.
 
                 from herramientas.calculadora import Calculadora
 
