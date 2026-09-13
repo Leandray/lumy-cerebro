@@ -40,139 +40,209 @@ class Respuesta:
                 "icono": "⏱️"
             })
 
+# ==================================================
+# DETECTAR ACCIONES DE MÚSICA
+# ==================================================
+
+def detectar_accion_musica(self, mensaje):
+    texto = mensaje.lower().strip()
+
     # ==================================================
-    # DETECTAR ACCIONES DE SPOTIFY
+    # ABRIR SPOTIFY
     # ==================================================
 
-    def detectar_accion_spotify(self, mensaje):
+    patrones_abrir_spotify = [
+        "abre spotify",
+        "abrir spotify",
+        "abre mi spotify",
+        "abrir mi spotify",
+        "quiero abrir spotify",
+        "pon spotify",
+        "abrir la aplicación de spotify"
+    ]
 
-        texto = mensaje.lower().strip()
-
-        patrones_abrir = [
-            "abre spotify",
-            "abrir spotify",
-            "abre mi spotify",
-            "abrir mi spotify",
-            "quiero abrir spotify",
-            "pon spotify",
-            "abrir la aplicación de spotify"
-        ]
-
-        if any(patron in texto for patron in patrones_abrir):
-
-            return {
-                "tipo": "spotify_abrir",
-                "datos": {
-                    "url": "https://open.spotify.com/"
-                }
+    if any(
+        patron in texto
+        for patron in patrones_abrir_spotify
+    ):
+        return {
+            "tipo": "spotify_abrir",
+            "datos": {
+                "url": "https://open.spotify.com/"
             }
+        }
 
-        patrones_buscar = [
-            "busca ",
-            "buscar ",
-            "búscame ",
-            "buscame ",
-            "encuentra ",
-            "quiero buscar "
-        ]
+    # ==================================================
+    # REPRODUCIR MÚSICA
+    # ==================================================
 
-        for patron in patrones_buscar:
+    patrones_reproducir = [
+        "reproduce ",
+        "reproducir ",
+        "pon ",
+        "poner ",
+        "quiero escuchar ",
+        "quiero oír ",
+        "quiero oir ",
+        "escucha ",
+        "escuchar "
+    ]
 
-            if texto.startswith(patron):
+    for patron in patrones_reproducir:
 
-                consulta = mensaje[len(patron):].strip()
+        if texto.startswith(patron):
 
-                if consulta:
+            consulta = mensaje[
+                len(patron):
+            ].strip()
 
-                    consulta = re.sub(
-                        r"\s+en spotify\s*$",
-                        "",
-                        consulta,
-                        flags=re.IGNORECASE
-                    ).strip()
+            if consulta:
 
-                    if consulta:
+                # Quitar referencias explícitas
+                # a YouTube / YouTube Music
+                consulta = re.sub(
+                    r"\s+en youtube music$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
 
-                        return {
-                            "tipo": "spotify_buscar",
-                            "datos": {
-                                "consulta": consulta
-                            }
-                        }
+                consulta = re.sub(
+                    r"\s+en youtube$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
 
-        patrones_musica = [
-            "busca música de ",
-            "busca musica de ",
-            "buscar música de ",
-            "buscar musica de ",
-            "quiero escuchar ",
-            "quiero oír ",
-            "quiero oir ",
-            "pon música de ",
-            "pon musica de ",
-            "reproduce ",
-            "reproducir "
-        ]
-
-        for patron in patrones_musica:
-
-            if texto.startswith(patron):
-
-                consulta = mensaje[len(patron):].strip()
+                consulta = re.sub(
+                    r"\s+en spotify$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
 
                 if consulta:
 
-                    consulta = re.sub(
-                        r"\s+en spotify\s*$",
-                        "",
-                        consulta,
-                        flags=re.IGNORECASE
-                    ).strip()
-
-                    if consulta:
-
-                        return {
-                            "tipo": "spotify_buscar",
-                            "datos": {
-                                "consulta": consulta
-                            }
+                    return {
+                        "tipo": "musica_reproducir",
+                        "datos": {
+                            "consulta": consulta
                         }
+                    }
 
-        patrones_playlist = [
-            "busca una playlist de ",
-            "busca playlist de ",
-            "buscar una playlist de ",
-            "buscar playlist de ",
-            "quiero una playlist de ",
-            "pon una playlist de ",
-            "reproduce una playlist de "
-        ]
+    # ==================================================
+    # BUSCAR MÚSICA
+    # ==================================================
 
-        for patron in patrones_playlist:
+    patrones_buscar_musica = [
+        "busca música de ",
+        "busca musica de ",
+        "buscar música de ",
+        "buscar musica de ",
+        "busca la canción ",
+        "busca la cancion ",
+        "buscar la canción ",
+        "buscar la cancion ",
+        "búscame la canción ",
+        "buscame la cancion "
+    ]
 
-            if texto.startswith(patron):
+    for patron in patrones_buscar_musica:
 
-                consulta = mensaje[len(patron):].strip()
+        if texto.startswith(patron):
+
+            consulta = mensaje[
+                len(patron):
+            ].strip()
+
+            if consulta:
+
+                consulta = re.sub(
+                    r"\s+en youtube music$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                consulta = re.sub(
+                    r"\s+en youtube$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                consulta = re.sub(
+                    r"\s+en spotify$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
 
                 if consulta:
 
-                    consulta = re.sub(
-                        r"\s+en spotify\s*$",
-                        "",
-                        consulta,
-                        flags=re.IGNORECASE
-                    ).strip()
-
-                    if consulta:
-
-                        return {
-                            "tipo": "spotify_playlist",
-                            "datos": {
-                                "consulta": consulta
-                            }
+                    return {
+                        "tipo": "musica_buscar",
+                        "datos": {
+                            "consulta": consulta
                         }
+                    }
 
-        return None
+    # ==================================================
+    # PLAYLIST
+    # ==================================================
+
+    patrones_playlist = [
+        "busca una playlist de ",
+        "busca playlist de ",
+        "buscar una playlist de ",
+        "buscar playlist de ",
+        "quiero una playlist de ",
+        "pon una playlist de ",
+        "reproduce una playlist de "
+    ]
+
+    for patron in patrones_playlist:
+
+        if texto.startswith(patron):
+
+            consulta = mensaje[
+                len(patron):
+            ].strip()
+
+            if consulta:
+
+                consulta = re.sub(
+                    r"\s+en youtube music$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                consulta = re.sub(
+                    r"\s+en youtube$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                consulta = re.sub(
+                    r"\s+en spotify$",
+                    "",
+                    consulta,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                if consulta:
+
+                    return {
+                        "tipo": "musica_playlist",
+                        "datos": {
+                            "consulta": consulta
+                        }
+                    }
+
+    return None
+
 
     # ==================================================
     # DETECTAR ACCIONES DE CALENDARIO
@@ -716,56 +786,50 @@ class Respuesta:
                     "accion": accion_temporizador,
                     "requiere_confirmacion": False
                 }
-
-        # ==================================================
-        # SPOTIFY
-        # ==================================================
-
-        accion_spotify = self.detectar_accion_spotify(
-            mensaje
-        )
-
-        if accion_spotify:
-
-            tipo = accion_spotify["tipo"]
-
-            if tipo == "spotify_abrir":
-
-                return {
-                    "respuesta": "Claro. Abriendo Spotify.",
-                    "accion": accion_spotify,
-                    "requiere_confirmacion": False
-                }
-
-            if tipo == "spotify_buscar":
-
-                consulta = accion_spotify[
-                    "datos"
-                ]["consulta"]
-
-                return {
-                    "respuesta": (
-                        f"Claro. Voy a buscar "
-                        f"'{consulta}' en Spotify."
-                    ),
-                    "accion": accion_spotify,
-                    "requiere_confirmacion": False
-                }
-
-            if tipo == "spotify_playlist":
-
-                consulta = accion_spotify[
-                    "datos"
-                ]["consulta"]
-
-                return {
-                    "respuesta": (
-                        f"Claro. Voy a buscar "
-                        f"una playlist de '{consulta}' en Spotify."
-                    ),
-                    "accion": accion_spotify,
-                    "requiere_confirmacion": False
-                }
+            # ==================================================
+            # MÚSICA
+            # ==================================================
+            accion_musica = self.detectar_accion_musica(
+                mensaje
+            )
+            if accion_musica:
+                tipo = accion_musica["tipo"]
+                if tipo == "spotify_abrir": 
+                    return {
+                       "respuesta": "Claro. Abriendo Spotify.",
+                        "accion": accion_musica,
+                        "requiere_confirmacion": False
+                    }
+                    if tipo == "musica_reproducir":
+                        consulta = accion_musica["datos"]["consulta"]
+                        return {
+                            "respuesta": (
+                                f"Claro. Voy a reproducir "
+                                f"'{consulta}'."
+                                ),
+                            "accion": accion_musica,
+                            "requiere_confirmacion": False
+                            }
+                        if tipo == "musica_buscar":
+                            consulta = accion_musica["datos"]["consulta"]
+                            return {
+                                "respuesta": (
+                                    f"Claro. Voy a buscar "
+                                    f"'{consulta}'."
+                                    ),
+                                "accion": accion_musica,
+                                "requiere_confirmacion": False
+                            }
+                            if tipo == "musica_playlist":
+                                consulta = accion_musica["datos"]["consulta"]
+                                return {
+                                    "respuesta": (
+                                        f"Claro. Voy a buscar "
+                                        f"una playlist de '{consulta}'."
+                                        ),
+                                    "accion": accion_musica,
+                                    "requiere_confirmacion": False
+                                    }
 
         # ==================================================
         # CALENDARIO
