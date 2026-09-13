@@ -5,9 +5,52 @@ import re
 
 class Respuesta:
 
-    def __init__(self):
-        self.ia = IA()
+   def __init__(self, notificar=None):
 
+    self.notificar = notificar
+
+    self.ia = IA()
+
+    # ======================================================
+    # TEMPORIZADOR
+    # ======================================================
+
+    try:
+        from herramientas.temporizador import Temporizador
+
+        self.temporizador = Temporizador(
+            al_terminar=self.notificar_temporizador
+        )
+
+    except Exception as error:
+
+        print(
+            "[LUMY] ⚠️ No se pudo inicializar "
+            "el temporizador:"
+        )
+
+        print(error)
+
+        self.temporizador = None
+        
+    # ==========================================================
+# NOTIFICAR CUANDO TERMINA EL TEMPORIZADOR
+# ==========================================================
+
+def notificar_temporizador(self):
+
+    print(
+        "[LUMY] 🔔 El temporizador ha terminado."
+    )
+
+    if self.notificar:
+
+        self.notificar({
+            "tipo": "temporizador",
+            "titulo": "Temporizador terminado",
+            "mensaje": "¡Tu temporizador ha terminado!",
+            "icono": "⏱️"
+        })
     # ==========================================================
     # DETECTAR ACCIONES DE MÚSICA
     # ==========================================================
