@@ -1,6 +1,7 @@
 from ia.ia import IA
 from datetime import datetime, timedelta
 import re
+from traductor_guarani import traducir
 
 
 class Respuesta:
@@ -492,6 +493,38 @@ class Respuesta:
     ):
 
         mensaje_lower = mensaje.lower().strip()
+
+                # ======================================================
+        # TRADUCTOR MANUAL DE GUARANÍ BOLIVIANO
+        # ======================================================
+
+        coincidencia = re.fullmatch(
+            r"¿?\s*c[oó]mo se dice(?: la palabra)?\s+(.+?)"
+            r"(?:\s+en guaran[ií])?\s*[?!.]*",
+            mensaje.strip(),
+            flags=re.IGNORECASE
+        )
+
+        if coincidencia:
+            palabra = coincidencia.group(1).strip(" ¿?¡!.,")
+            traduccion = traducir(palabra, "guarani")
+
+            if traduccion:
+                respuesta_traductor = (
+                    f"En guaraní boliviano, '{palabra}' "
+                    f"se dice '{traduccion}'."
+                )
+            else:
+                respuesta_traductor = (
+                    f"Todavía no tengo registrada la palabra "
+                    f"'{palabra}' en mi diccionario de guaraní boliviano."
+                )
+
+            return {
+                "respuesta": respuesta_traductor,
+                "accion": None,
+                "requiere_confirmacion": False
+            }
 
         # ======================================================
         # CALCULADORA
