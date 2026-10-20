@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 from cerebro import Cerebro
-from traductor_guarani import responder_traductor
+from traductor_guarani import traducir
 
 from oauth_google import (
     construir_url_autorizacion,
