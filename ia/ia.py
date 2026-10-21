@@ -540,6 +540,9 @@ Los pronombres deben aplicarse únicamente al usuario.
 
                         contenido = respuesta.text
 
+                        if contenido:
+                            contenido = contenido.replace("**", "").replace("__", "")
+
                         if not contenido or not contenido.strip():
                             raise RuntimeError(
                                 "Gemini devolvió una respuesta vacía."
