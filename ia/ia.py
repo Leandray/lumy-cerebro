@@ -27,7 +27,7 @@ class IA:
         # MODELO
         # ==========================================
 
-        self.modelo = "gemini-3.6-flash"
+        self.modelo = "gemini-3.8-flash"
 
     # ==========================================
     # GENERAR RESPUESTA
@@ -502,69 +502,115 @@ Los pronombres deben aplicarse únicamente al usuario.
                 )
             )
 
+            
             # ==========================================
-            # INTENTAR GEMINI
+            # INTENTAR GEMINI CON REINTENTOS Y ALTERNATIVA
             # ==========================================
 
-            max_intentos = 2
+            modelos = [
+                self.modelo,
+                "gemini-3.6-flash",
+            ]
 
-            for intento in range(
-                1,
-                max_intentos + 1
-            ):
+            max_intentos = 3
+            respuesta_generada = None
+            ultimo_error = None
 
-                try:
+            for modelo_actual in modelos:
+                for intento in range(1, max_intentos + 1):
 
-                    print(
-                        f"[LUMY] Enviando mensaje a Gemini "
-                        f"(intento {intento}/{max_intentos})..."
-                    )
+                    try:
+                        print(
+                            f"[LUMY] Enviando mensaje a Gemini "
+                            f"con {modelo_actual} "
+                            f"(intento {intento}/{max_intentos})..."
+                        )
 
-                    respuesta = self.cliente.models.generate_content(
-                        model=self.modelo,
-                        contents=contenidos,
-                        config=types.GenerateContentConfig(
-                            system_instruction=instrucciones,
-                            max_output_tokens=500,
-                            thinking_config=types.ThinkingConfig(
-                                thinking_level="low"
+                        respuesta = self.cliente.models.generate_content(
+                            model=modelo_actual,
+                            contents=contenidos,
+                            config=types.GenerateContentConfig(
+                                system_instruction=instrucciones,
+                                max_output_tokens=500,
+                                thinking_config=types.ThinkingConfig(
+                                    thinking_level="low"
+                                ),
                             ),
                         )
-                    )
 
-                    contenido = respuesta.text
+                        contenido = respuesta.text
 
-                    if not contenido:
-                        raise RuntimeError(
-                            "Gemini devolvió una respuesta vacía."
-                        )
+                        if not contenido or not contenido.strip():
+                            raise RuntimeError(
+                                "Gemini devolvió una respuesta vacía."
+                            )
 
-                    print(
-                        "[LUMY] Gemini respondió correctamente."
-                    )
-
-                    return contenido.strip()
-
-                except Exception as error:
-
-                    print(
-                        f"[LUMY] Error en Gemini "
-                        f"(intento {intento}):"
-                    )
-
-                    print(error)
-
-                    if intento < max_intentos:
+                        respuesta_generada = contenido.strip()
 
                         print(
-                            "[LUMY] Esperando antes "
-                            "de volver a intentar..."
+                            f"[LUMY] Respuesta generada "
+                            f"correctamente con {modelo_actual}."
                         )
 
-                        time.sleep(2)
+                        break
 
-                    else:
-                        raise
+                    except Exception as error:
+                        ultimo_error = error
+                        detalle = str(error).upper()
+
+                        error_temporal = any(
+                            marca in detalle
+                            for marca in (
+                                "503",
+                                "UNAVAILABLE",
+                                "429",
+                                "RESOURCE_EXHAUSTED",
+                                "500",
+                                "INTERNAL",
+                                "502",
+                                "504",
+                                "TIMEOUT",
+                                "DEADLINE_EXCEEDED",
+                            )
+                        )
+
+                        print(
+                            f"[LUMY] Error con {modelo_actual}: {error}"
+                        )
+
+                        # No reintentar errores de configuración,
+                        # autenticación u otros errores permanentes.
+                        if not error_temporal:
+                            raise
+
+                        if intento < max_intentos:
+                            espera = 2 ** intento
+
+                            print(
+                                f"[LUMY] Error temporal. "
+                                f"Nuevo intento en {espera} segundos..."
+                            )
+
+                            time.sleep(espera)
+                        else:
+                            print(
+                                f"[LUMY] Se agotaron los intentos "
+                                f"para {modelo_actual}."
+                            )
+
+                if respuesta_generada:
+                    return respuesta_generada
+
+                print(
+                    f"[LUMY] Probando el siguiente modelo disponible..."
+                )
+
+            if not respuesta_generada:
+                raise RuntimeError(
+                    "No fue posible obtener respuesta de los modelos "
+                    "de Gemini."
+                ) from ultimo_error
+
 
         # ==========================================
         # ERROR FINAL
