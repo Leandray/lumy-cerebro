@@ -7,10 +7,6 @@ class FirebaseMemoria:
         self.uid = uid
         self.usuario_ref = db.collection("users").document(uid)
 
-    # ==========================================
-    # CARGAR MEMORIA
-    # ==========================================
-
     def cargar_memoria(self):
         documento = self.usuario_ref.get()
 
@@ -20,11 +16,10 @@ class FirebaseMemoria:
         datos = documento.to_dict() or {}
         memoria = datos.get("memory", {})
 
-        return memoria if isinstance(memoria, dict) else {}
+        if not isinstance(memoria, dict):
+            return {}
 
-    # ==========================================
-    # GUARDAR MEMORIA
-    # ==========================================
+        return memoria
 
     def guardar_memoria(self, memoria):
         self.usuario_ref.set(
@@ -32,29 +27,20 @@ class FirebaseMemoria:
             merge=True,
         )
 
-    # ==========================================
-    # GUARDAR IDENTIDAD
-    # ==========================================
-
     def guardar_identidad(self, nombre=None, pronombres=None):
         identidad = {}
 
-        self.usuario["nombre"] = identidad.get(
-    "name", identidad.get("nombre", "")
-)
-self.usuario["pronombres"] = identidad.get(
-    "pronouns", identidad.get("pronombres", "")
-)
+        if nombre is not None:
+            identidad["name"] = nombre
+
+        if pronombres is not None:
+            identidad["pronouns"] = pronombres
 
         if identidad:
             self.usuario_ref.set(
                 {"identity": identidad},
                 merge=True,
             )
-
-    # ==========================================
-    # CARGAR IDENTIDAD
-    # ==========================================
 
     def cargar_identidad(self):
         documento = self.usuario_ref.get()
@@ -65,4 +51,7 @@ self.usuario["pronombres"] = identidad.get(
         datos = documento.to_dict() or {}
         identidad = datos.get("identity", {})
 
-        return identidad if isinstance(identidad, dict) else {}
+        if not isinstance(identidad, dict):
+            return {}
+
+        return identidad
