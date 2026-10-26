@@ -651,18 +651,19 @@ def obtener_token_calendar():
 
         return jsonify({
             "access_token": token
-        })
+        }), 200
 
     except Exception as error:
-        print("❌ ERROR OBTENIENDO TOKEN DE GOOGLE CALENDAR:")
-        print(error)
+        app.logger.exception(
+            "ERROR OBTENIENDO TOKEN DE GOOGLE CALENDAR"
+        )
 
         return jsonify({
             "error": str(error)
         }), 401
 
 
-    @app.route("/contacto", methods=["POST"])
+@app.route("/contacto", methods=["POST"])
 def enviar_contacto():
     datos = request.get_json(silent=True) or {}
 
@@ -671,18 +672,31 @@ def enviar_contacto():
     mensaje = str(datos.get("message", "")).strip()
 
     if not nombre or not correo or not mensaje:
-        return jsonify({"error": "Completa todos los campos."}), 400
+        return jsonify({
+            "error": "Completa todos los campos."
+        }), 400
 
-    if len(nombre) > 100 or len(correo) > 254 or len(mensaje) > 5000:
-        return jsonify({"error": "El mensaje supera el límite permitido."}), 400
+    if (
+        len(nombre) > 100
+        or len(correo) > 254
+        or len(mensaje) > 5000
+    ):
+        return jsonify({
+            "error": "El mensaje supera el límite permitido."
+        }), 400
 
     api_key = os.environ.get("RESEND_API_KEY")
     correo_admin = os.environ.get("CONTACT_EMAIL")
     remitente = os.environ.get("RESEND_FROM")
 
     if not api_key or not correo_admin or not remitente:
-        app.logger.error("Falta configurar el servicio de correo.")
-        return jsonify({"error": "Servicio de correo no configurado."}), 500
+        app.logger.error(
+            "Falta configurar el servicio de correo."
+        )
+
+        return jsonify({
+            "error": "Servicio de correo no configurado."
+        }), 500
 
     contenido = (
         "Nuevo mensaje desde el formulario de contacto de LUMY\n\n"
@@ -713,47 +727,36 @@ def enviar_contacto():
                 "Falló el envío de contacto. HTTP %s",
                 respuesta.status_code,
             )
-            return jsonify({"error": "No se pudo enviar el correo."}), 502
 
-        return jsonify({"ok": True, "message": "Correo enviado."}), 200
+            return jsonify({
+                "error": "No se pudo enviar el correo."
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "message": "Correo enviado."
+        }), 200
 
     except requests.RequestException:
-        app.logger.exception("Error de conexión con el servicio de correo.")
-        return jsonify({"error": "No se pudo conectar con el servicio de correo."}), 502
+        app.logger.exception(
+            "Error de conexión con el servicio de correo."
+        )
+
+        return jsonify({
+            "error": "No se pudo conectar con el servicio de correo."
+        }), 502
 
 
 if __name__ == "__main__":
-
-    print(
-        "================================"
-    )
-
-    print(
-        "       LUMY - API"
-    )
-
-    print(
-        "================================"
-    )
-
-    print(
-        "Servidor iniciado."
-    )
-
-    print(
-        "Esperando conexiones..."
-    )
-
-    print(
-        "================================"
-    )
+    print("================================")
+    print("       LUMY - API")
+    print("================================")
+    print("Servidor iniciado.")
+    print("Esperando conexiones...")
+    print("================================")
 
     app.run(
-
         host="0.0.0.0",
-
         port=5000,
-
         debug=True
-
     )
