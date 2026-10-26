@@ -10,6 +10,9 @@ from oauth_google import (
     guardar_oauth
 )
 
+import os
+import hmac
+
 
 app = Flask(__name__)
 
@@ -41,6 +44,12 @@ cerebros = {}
 # temporalmente hasta que la web las consulte.
 
 notificaciones = {}
+
+# ==================================================
+# COLA DE VOZ PARA LA RASPBERRY PI
+# ==================================================
+
+voces_pendientes = {}
 
 
 # ==================================================
@@ -249,6 +258,25 @@ def lumy():
             ">>> ENVIANDO RESPUESTA A LA WEB"
         )
 
+                # ------------------------------------------
+        # ENVIAR RESPUESTA A LA COLA DE VOZ
+        # ------------------------------------------
+
+        if isinstance(respuesta, str) and respuesta.strip():
+
+            cola = voces_pendientes.setdefault(uid, [])
+
+            cola.append(respuesta.strip())
+
+            # Evitar que la cola crezca indefinidamente.
+            if len(cola) > 20:
+                del cola[:-20]
+
+            print(
+                ">>> RESPUESTA AÑADIDA A LA COLA DE VOZ",
+                flush=True
+            )
+
         # ------------------------------------------
         # RESPONDER
         # ------------------------------------------
@@ -286,6 +314,40 @@ def lumy():
 
         }), 500
 
+# ==================================================
+# COLA DE VOZ - RASPBERRY PI
+# ==================================================
+
+@app.route("/voz/pendientes", methods=["GET"])
+def obtener_voces_pendientes():
+
+    token_configurado = os.environ.get("LUMY_VOICE_TOKEN", "")
+    autorizacion = request.headers.get("Authorization", "")
+
+    if not token_configurado:
+        return jsonify({
+            "error": "Canal de voz no configurado."
+        }), 503
+
+    token_recibido = autorizacion.removeprefix("Bearer ").strip()
+
+    if not hmac.compare_digest(token_recibido, token_configurado):
+        return jsonify({
+            "error": "No autorizado."
+        }), 401
+
+    uid = request.args.get("uid", "").strip()
+
+    if not uid:
+        return jsonify({
+            "error": "Falta el UID."
+        }), 400
+
+    pendientes = voces_pendientes.pop(uid, [])
+
+    return jsonify({
+        "mensajes": pendientes
+    }), 200
 
 # ==================================================
 # OBTENER NOTIFICACIONES
