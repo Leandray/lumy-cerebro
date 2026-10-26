@@ -599,6 +599,67 @@ def obtener_token_calendar():
             "error": str(error)
         }), 401
 
+
+    @app.route("/contacto", methods=["POST"])
+def enviar_contacto():
+    datos = request.get_json(silent=True) or {}
+
+    nombre = str(datos.get("name", "")).strip()
+    correo = str(datos.get("email", "")).strip()
+    mensaje = str(datos.get("message", "")).strip()
+
+    if not nombre or not correo or not mensaje:
+        return jsonify({"error": "Completa todos los campos."}), 400
+
+    if len(nombre) > 100 or len(correo) > 254 or len(mensaje) > 5000:
+        return jsonify({"error": "El mensaje supera el límite permitido."}), 400
+
+    api_key = os.environ.get("RESEND_API_KEY")
+    correo_admin = os.environ.get("CONTACT_EMAIL")
+    remitente = os.environ.get("RESEND_FROM")
+
+    if not api_key or not correo_admin or not remitente:
+        app.logger.error("Falta configurar el servicio de correo.")
+        return jsonify({"error": "Servicio de correo no configurado."}), 500
+
+    contenido = (
+        "Nuevo mensaje desde el formulario de contacto de LUMY\n\n"
+        f"Nombre: {nombre}\n"
+        f"Correo del remitente: {correo}\n\n"
+        f"Mensaje:\n{mensaje}"
+    )
+
+    try:
+        respuesta = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": remitente,
+                "to": [correo_admin],
+                "reply_to": correo,
+                "subject": f"Nuevo mensaje de contacto de LUMY: {nombre}",
+                "text": contenido,
+            },
+            timeout=20,
+        )
+
+        if not respuesta.ok:
+            app.logger.error(
+                "Falló el envío de contacto. HTTP %s",
+                respuesta.status_code,
+            )
+            return jsonify({"error": "No se pudo enviar el correo."}), 502
+
+        return jsonify({"ok": True, "message": "Correo enviado."}), 200
+
+    except requests.RequestException:
+        app.logger.exception("Error de conexión con el servicio de correo.")
+        return jsonify({"error": "No se pudo conectar con el servicio de correo."}), 502
+
+
 if __name__ == "__main__":
 
     print(
