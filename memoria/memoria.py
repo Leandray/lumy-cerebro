@@ -1,8 +1,43 @@
+
+import logging
+
+from memoria.memoria_firebase import FirebaseMemoria
+
+
+class Memoria:
+    def __init__(self, uid):
+        self.uid = uid
+
+        self.usuario = {
+            "nombre": "",
+            "pronombres": "",
+        }
+        self.preferencias = {}
+        self.configuracion = {}
+        self.recuerdos = []
+        self.conversacion = []
+
+        self.firebase = None
+
+        try:
+            firebase = FirebaseMemoria(uid)
+
+            identidad = firebase.cargar_identidad() or {}
+            memoria = firebase.cargar_memoria() or {}
+
+            if not isinstance(identidad, dict):
+                identidad = {}
+            if not isinstance(memoria, dict):
+                memoria = {}
+
+            self.usuario["nombre"] = identidad.get("nombre", "")
+            self.usuario["pronombres"] = identidad.get("pronombres", "")
+
+            self.conversacion = memoria.get("conversacion", [])
+            self.preferencias = memoria.get("preferencias", {})
             self.configuracion = memoria.get("configuracion", {})
             self.recuerdos = memoria.get("recuerdos", [])
 
-            # Validación básica para evitar errores si Firestore devuelve
-            # datos antiguos o con un formato inesperado.
             if not isinstance(self.conversacion, list):
                 self.conversacion = []
             if not isinstance(self.preferencias, dict):
@@ -16,10 +51,8 @@
             print("[MEMORIA] Firebase cargado correctamente.", flush=True)
 
         except Exception:
-            # No imprimimos credenciales ni datos privados.
-            import logging
             logging.exception(
-                "[MEMORIA] No se pudo conectar/cargar Firebase. "
+                "[MEMORIA] No se pudo cargar Firebase. "
                 "LUMY continuará con memoria temporal."
             )
             self.firebase = None
@@ -42,8 +75,9 @@
                     pronombres=self.usuario["pronombres"],
                 )
             except Exception:
-                import logging
-                logging.exception("[MEMORIA] No se pudo guardar la identidad.")
+                logging.exception(
+                    "[MEMORIA] No se pudo guardar la identidad."
+                )
 
     def obtener_usuario(self):
         return self.usuario.copy()
@@ -67,6 +101,7 @@
             return
 
         recuerdo = str(recuerdo).strip()
+
         if recuerdo and recuerdo not in self.recuerdos:
             self.recuerdos.append(recuerdo)
             self.guardar_memoria()
@@ -89,10 +124,13 @@
         palabras_mensaje = set(mensaje.split())
 
         recuerdos_relevantes = []
+
         for recuerdo in self.recuerdos:
             if not isinstance(recuerdo, str):
                 continue
+
             palabras_recuerdo = set(recuerdo.lower().split())
+
             if palabras_mensaje & palabras_recuerdo:
                 recuerdos_relevantes.append(recuerdo)
 
@@ -116,6 +154,7 @@
             "usuario": usuario,
             "lumy": lumy,
         })
+
         self.conversacion = self.conversacion[-20:]
         self.guardar_memoria()
 
@@ -139,5 +178,6 @@
                 "recuerdos": self.recuerdos,
             })
         except Exception:
-            import logging
-            logging.exception("[MEMORIA] No se pudo guardar la memoria en Firebase.")
+            logging.exception(
+                "[MEMORIA] No se pudo guardar la memoria en Firebase."
+            )
