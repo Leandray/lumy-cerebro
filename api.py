@@ -1,337 +1,207 @@
-from flask import Flask, request, jsonify, redirect
-from flask_cors import CORS
-from cerebro import Cerebro
-from traductor_guarani import traducir
 
+import hmac
+import logging
+import os
+
+import requests
+from flask import Flask, jsonify, redirect, request
+from flask_cors import CORS
+
+from cerebro import Cerebro
 from oauth_google import (
     construir_url_autorizacion,
     obtener_state,
     intercambiar_code,
-    guardar_oauth
+    guardar_oauth,
 )
 
-import os
-import hmac
-
-
 app = Flask(__name__)
-
 CORS(app)
 
-
-# ==================================================
+# ==========================================
 # CEREBROS ACTIVOS
-# ==================================================
-
-# Un Cerebro por usuario.
-#
-# Esto permite conservar:
-# - temporizadores
-# - estado emocional
-# - personalidad
-# - herramientas
-#
-# mientras el servidor permanezca encendido.
+# ==========================================
 
 cerebros = {}
 
-
-# ==================================================
-# NOTIFICACIONES
-# ==================================================
-
-# Las notificaciones quedan almacenadas
-# temporalmente hasta que la web las consulte.
+# ==========================================
+# NOTIFICACIONES Y COLA DE VOZ
+# ==========================================
 
 notificaciones = {}
-
-# ==================================================
-# COLA DE VOZ PARA LA RASPBERRY PI
-# ==================================================
-
 voces_pendientes = {}
 
 
-# ==================================================
-# RECIBIR NOTIFICACIÓN
-# ==================================================
-
 def recibir_notificacion(uid, notificacion):
-
-    if uid not in notificaciones:
-
-        notificaciones[uid] = []
-
-    notificaciones[uid].append(
-        notificacion
-    )
-
-    print(
-        ">>> NOTIFICACIÓN GUARDADA PARA:",
-        uid
-    )
+    notificaciones.setdefault(uid, []).append(notificacion)
 
 
-# ==================================================
+# ==========================================
 # OBTENER CEREBRO
-# ==================================================
+# ==========================================
 
 def obtener_cerebro(uid):
-
     if uid not in cerebros:
-
         print(
             ">>> CREANDO NUEVO CEREBRO PARA:",
-            uid
+            uid,
+            flush=True,
         )
 
-        cerebros[uid] = Cerebro(
+        nuevo_cerebro = Cerebro(
             uid,
-            notificar=recibir_notificacion
+            notificar=recibir_notificacion,
         )
+
+        cerebros[uid] = nuevo_cerebro
 
         print(
-            ">>> CEREBRO GUARDADO EN MEMORIA"
+            ">>> CEREBRO GUARDADO EN MEMORIA",
+            flush=True,
         )
-
     else:
-
         print(
             ">>> REUTILIZANDO CEREBRO EXISTENTE:",
-            uid
+            uid,
+            flush=True,
         )
 
     return cerebros[uid]
 
 
-# ==================================================
+# ==========================================
 # RUTA PRINCIPAL DE LUMY
-# ==================================================
+# ==========================================
 
 @app.route("/lumy", methods=["POST"])
 def lumy():
-
     try:
+        print("\n================================", flush=True)
+        print(">>> NUEVA PETICIÓN A LUMY", flush=True)
+        print("================================", flush=True)
 
-        print("\n================================")
-        print(">>> NUEVA PETICIÓN A LUMY")
-        print("================================")
+        datos = request.get_json(silent=True)
 
-        datos = request.get_json()
+        print(">>> DATOS RECIBIDOS:", datos, flush=True)
 
-        print(
-            ">>> DATOS RECIBIDOS:",
-            datos
-        )
-
-        if not datos:
-
+        if not isinstance(datos, dict):
             return jsonify({
-                "error": "No se recibieron datos."
+                "error": "No se recibieron datos JSON válidos."
             }), 400
 
-        # ------------------------------------------
-        # UID
-        # ------------------------------------------
-
         uid = datos.get("uid")
-
-        # ------------------------------------------
-        # MENSAJE
-        # ------------------------------------------
-
         mensaje = datos.get("mensaje")
 
-        print(
-            ">>> UID:",
-            uid
-        )
-
-        print(
-            ">>> MENSAJE:",
-            mensaje
-        )
-
-        # ------------------------------------------
-        # VALIDAR UID
-        # ------------------------------------------
+        print(">>> UID:", uid, flush=True)
+        print(">>> MENSAJE:", mensaje, flush=True)
 
         if not uid:
-
             return jsonify({
                 "error": "Falta el UID del usuario."
             }), 400
 
-        # ------------------------------------------
-        # VALIDAR MENSAJE
-        # ------------------------------------------
-
-        if not mensaje:
-
+        if not isinstance(mensaje, str) or not mensaje.strip():
             return jsonify({
                 "error": "Falta el mensaje."
             }), 400
 
-        # ------------------------------------------
-        # OBTENER CEREBRO
-        # ------------------------------------------
-
-        print(
-            ">>> OBTENIENDO CEREBRO..."
-        )
+        print(">>> OBTENIENDO CEREBRO...", flush=True)
 
         cerebro = obtener_cerebro(uid)
 
-        print(
-            ">>> CEREBRO LISTO"
-        )
+        print(">>> CEREBRO LISTO", flush=True)
+        print(">>> PROCESANDO MENSAJE...", flush=True)
 
-        # ------------------------------------------
-        # PROCESAR
-        # ------------------------------------------
+        resultado = cerebro.procesar(mensaje.strip())
 
-        print(
-            ">>> PROCESANDO MENSAJE..."
-        )
-
-        resultado = cerebro.procesar(
-            mensaje
-        )
-
-        print(
-            ">>> RESULTADO GENERADO:"
-        )
-
-        print(
-            resultado
-        )
-
-        # ------------------------------------------
-        # PROCESAR RESULTADO
-        # ------------------------------------------
+        print(">>> RESULTADO GENERADO:", flush=True)
+        print(resultado, flush=True)
 
         if isinstance(resultado, dict):
-
-            respuesta = resultado.get(
-                "respuesta",
-                ""
-            )
-
-            accion = resultado.get(
-                "accion",
-                None
-            )
-
+            respuesta = resultado.get("respuesta", "")
+            accion = resultado.get("accion")
             requiere_confirmacion = resultado.get(
                 "requiere_confirmacion",
-                False
+                False,
             )
-
         else:
-
             respuesta = resultado
-
             accion = None
-
             requiere_confirmacion = False
 
-        # ------------------------------------------
-        # MOSTRAR RESULTADO
-        # ------------------------------------------
-
-        print(
-            ">>> RESPUESTA:",
-            respuesta
-        )
-
-        print(
-            ">>> ACCIÓN:",
-            accion
-        )
-
+        print(">>> RESPUESTA:", respuesta, flush=True)
+        print(">>> ACCIÓN:", accion, flush=True)
         print(
             ">>> REQUIERE CONFIRMACIÓN:",
-            requiere_confirmacion
+            requiere_confirmacion,
+            flush=True,
         )
 
-        print(
-            ">>> ENVIANDO RESPUESTA A LA WEB"
-        )
-
-                # ------------------------------------------
-        # ENVIAR RESPUESTA A LA COLA DE VOZ
-        # ------------------------------------------
+        # ==========================================
+        # COLA DE VOZ PARA RASPBERRY PI
+        # ==========================================
 
         if isinstance(respuesta, str) and respuesta.strip():
-
             cola = voces_pendientes.setdefault(uid, [])
-
             cola.append(respuesta.strip())
 
-            # Evitar que la cola crezca indefinidamente.
             if len(cola) > 20:
                 del cola[:-20]
 
             print(
                 ">>> RESPUESTA AÑADIDA A LA COLA DE VOZ",
-                flush=True
+                flush=True,
             )
 
-        # ------------------------------------------
-        # RESPONDER
-        # ------------------------------------------
+        # ==========================================
+        # RESPUESTA A LA WEB
+        # ==========================================
 
         return jsonify({
-
             "respuesta": respuesta,
-
             "accion": accion,
-
-            "requiere_confirmacion":
-                requiere_confirmacion
-
-        })
+            "requiere_confirmacion": requiere_confirmacion,
+        }), 200
 
     except Exception as error:
-
-        print("\n================================")
-
-        print(
-            "ERROR EN LUMY:"
-        )
-
-        print(
-            error
-        )
-
-        print(
-            "================================"
+        app.logger.exception(
+            "TRAZA COMPLETA DEL ERROR EN LUMY"
         )
 
         return jsonify({
-
             "error": str(error)
-
         }), 500
 
-# ==================================================
+
+# ==========================================
 # COLA DE VOZ - RASPBERRY PI
-# ==================================================
+# ==========================================
 
 @app.route("/voz/pendientes", methods=["GET"])
 def obtener_voces_pendientes():
+    token_configurado = os.environ.get(
+        "LUMY_VOICE_TOKEN",
+        "",
+    )
 
-    token_configurado = os.environ.get("LUMY_VOICE_TOKEN", "")
-    autorizacion = request.headers.get("Authorization", "")
+    autorizacion = request.headers.get(
+        "Authorization",
+        "",
+    )
 
     if not token_configurado:
         return jsonify({
             "error": "Canal de voz no configurado."
         }), 503
 
-    token_recibido = autorizacion.removeprefix("Bearer ").strip()
+    token_recibido = autorizacion.removeprefix(
+        "Bearer "
+    ).strip()
 
-    if not hmac.compare_digest(token_recibido, token_configurado):
+    if not hmac.compare_digest(
+        token_recibido,
+        token_configurado,
+    ):
         return jsonify({
             "error": "No autorizado."
         }), 401
@@ -349,63 +219,46 @@ def obtener_voces_pendientes():
         "mensajes": pendientes
     }), 200
 
-# ==================================================
+
+# ==========================================
 # OBTENER NOTIFICACIONES
-# ==================================================
+# ==========================================
 
-@app.route(
-    "/notificaciones/<uid>",
-    methods=["GET"]
-)
+@app.route("/notificaciones/<uid>", methods=["GET"])
 def obtener_notificaciones(uid):
-
     try:
-
-        pendientes = notificaciones.get(
-            uid,
-            []
-        )
-
-        # ------------------------------------------
-        # ENTREGAR NOTIFICACIONES
-        # ------------------------------------------
-
+        pendientes = notificaciones.get(uid, [])
         notificaciones[uid] = []
 
         print(
             ">>> NOTIFICACIONES ENVIADAS A:",
-            uid
+            uid,
+            flush=True,
         )
 
         print(
             ">>> CANTIDAD:",
-            len(pendientes)
+            len(pendientes),
+            flush=True,
         )
 
         return jsonify({
+            "notificaciones": pendientes
+        }), 200
 
-            "notificaciones":
-                pendientes
-
-        })
-
-    except Exception as error:
-
-        print(
-            ">>> ERROR OBTENIENDO NOTIFICACIONES:",
-            error
+    except Exception:
+        app.logger.exception(
+            "ERROR OBTENIENDO NOTIFICACIONES"
         )
 
         return jsonify({
-
-            "error": str(error)
-
+            "error": "No se pudieron obtener las notificaciones."
         }), 500
 
 
-# ============================================================
+# ==========================================
 # GOOGLE OAUTH - YOUTUBE
-# ============================================================
+# ==========================================
 
 @app.route("/oauth/youtube/start", methods=["GET"])
 def oauth_youtube_start():
@@ -419,17 +272,18 @@ def oauth_youtube_start():
 
         url = construir_url_autorizacion(
             uid,
-            "youtube"
+            "youtube",
         )
 
         return redirect(url)
 
-    except Exception as error:
-        print("❌ ERROR INICIANDO OAUTH YOUTUBE:")
-        print(error)
+    except Exception:
+        app.logger.exception(
+            "ERROR INICIANDO OAUTH YOUTUBE"
+        )
 
         return jsonify({
-            "error": str(error)
+            "error": "No se pudo iniciar OAuth de YouTube."
         }), 500
 
 
@@ -438,47 +292,48 @@ def oauth_youtube_callback():
     try:
         code = request.args.get("code")
         state = request.args.get("state")
-        error = request.args.get("error")
+        error_oauth = request.args.get("error")
 
-        if error:
-            print(
-                "❌ Google rechazó OAuth YouTube:",
-                error
+        if error_oauth:
+            logging.error(
+                "Google rechazó OAuth YouTube: %s",
+                error_oauth,
             )
 
             return redirect(
                 "https://lumy-c1805.web.app/index.html"
                 "?youtube_error="
-                + error
+                + error_oauth
             )
 
         if not code:
-            return "❌ No se recibió authorization code.", 400
+            return "No se recibió authorization code.", 400
 
         datos_state = obtener_state(
             state,
-            "youtube"
+            "youtube",
         )
 
         if not datos_state:
-            return "❌ State OAuth inválido o expirado.", 400
+            return "State OAuth inválido o expirado.", 400
 
         uid = datos_state["uid"]
 
         tokens = intercambiar_code(
             code,
-            "https://lumy-cerebro.onrender.com/oauth/youtube/callback"
+            "https://lumy-cerebro.onrender.com/oauth/youtube/callback",
         )
 
         guardar_oauth(
             uid,
             "youtube",
-            tokens
+            tokens,
         )
 
         print(
-            "✅ YouTube conectado correctamente:",
-            uid
+            "YouTube conectado correctamente:",
+            uid,
+            flush=True,
         )
 
         return redirect(
@@ -486,122 +341,16 @@ def oauth_youtube_callback():
             "?youtube_connected=true"
         )
 
-    except Exception as error:
-        print("❌ ERROR EN CALLBACK YOUTUBE:")
-        print(error)
+    except Exception:
+        app.logger.exception(
+            "ERROR EN CALLBACK YOUTUBE"
+        )
 
         return redirect(
             "https://lumy-c1805.web.app/index.html"
             "?youtube_error=true"
         )
 
-
-# ============================================================
-# GOOGLE OAUTH - CALENDAR
-# ============================================================
-
-@app.route("/oauth/calendar/start", methods=["GET"])
-def oauth_calendar_start():
-    try:
-        uid = request.args.get("uid")
-
-        if not uid:
-            return jsonify({
-                "error": "Falta el UID del usuario."
-            }), 400
-
-        url = construir_url_autorizacion(
-            uid,
-            "calendar"
-        )
-
-        return redirect(url)
-
-    except Exception as error:
-        print("❌ ERROR INICIANDO OAUTH CALENDAR:")
-        print(error)
-
-        return jsonify({
-            "error": str(error)
-        }), 500
-
-
-@app.route("/oauth/calendar/callback", methods=["GET"])
-def oauth_calendar_callback():
-    try:
-        code = request.args.get("code")
-        state = request.args.get("state")
-        error = request.args.get("error")
-
-        if error:
-            print(
-                "❌ Google rechazó OAuth Calendar:",
-                error
-            )
-
-            return redirect(
-                "https://lumy-c1805.web.app/index.html"
-                "?calendar_error="
-                + error
-            )
-
-        if not code:
-            return "❌ No se recibió authorization code.", 400
-
-        datos_state = obtener_state(
-            state,
-            "calendar"
-        )
-
-        if not datos_state:
-            return "❌ State OAuth inválido o expirado.", 400
-
-        uid = datos_state["uid"]
-
-        tokens = intercambiar_code(
-            code,
-            "https://lumy-cerebro.onrender.com/oauth/calendar/callback"
-        )
-
-        guardar_oauth(
-            uid,
-            "calendar",
-            tokens
-        )
-
-        print(
-            "✅ Google Calendar conectado correctamente:",
-            uid
-        )
-
-        return redirect(
-            "https://lumy-c1805.web.app/index.html"
-            "?calendar_connected=true"
-        )
-
-    except Exception as error:
-        print("❌ ERROR EN CALLBACK CALENDAR:")
-        print(error)
-
-        return redirect(
-            "https://lumy-c1805.web.app/index.html"
-            "?calendar_error=true"
-        )
-
-# ==================================================
-# INICIAR SERVIDOR
-# ==================================================
-
-print("\n========== RUTAS DE LUMY ==========")
-
-for ruta in app.url_map.iter_rules():
-    print(ruta)
-
-print("===================================\n")
-
-# ============================================================
-# OBTENER ACCESS TOKEN VÁLIDO DE YOUTUBE
-# ============================================================
 
 @app.route("/oauth/youtube/token", methods=["GET"])
 def obtener_token_youtube():
@@ -617,21 +366,119 @@ def obtener_token_youtube():
 
         token = obtener_access_token(
             uid,
-            "youtube"
+            "youtube",
         )
 
         return jsonify({
             "access_token": token
-        })
+        }), 200
 
-    except Exception as error:
-        print("❌ ERROR OBTENIENDO TOKEN DE YOUTUBE:")
-        print(error)
+    except Exception:
+        app.logger.exception(
+            "ERROR OBTENIENDO TOKEN DE YOUTUBE"
+        )
 
         return jsonify({
-            "error": str(error)
+            "error": "No se pudo obtener el token de YouTube."
         }), 401
-        
+
+
+# ==========================================
+# GOOGLE OAUTH - CALENDAR
+# ==========================================
+
+@app.route("/oauth/calendar/start", methods=["GET"])
+def oauth_calendar_start():
+    try:
+        uid = request.args.get("uid")
+
+        if not uid:
+            return jsonify({
+                "error": "Falta el UID del usuario."
+            }), 400
+
+        url = construir_url_autorizacion(
+            uid,
+            "calendar",
+        )
+
+        return redirect(url)
+
+    except Exception:
+        app.logger.exception(
+            "ERROR INICIANDO OAUTH CALENDAR"
+        )
+
+        return jsonify({
+            "error": "No se pudo iniciar OAuth de Calendar."
+        }), 500
+
+
+@app.route("/oauth/calendar/callback", methods=["GET"])
+def oauth_calendar_callback():
+    try:
+        code = request.args.get("code")
+        state = request.args.get("state")
+        error_oauth = request.args.get("error")
+
+        if error_oauth:
+            logging.error(
+                "Google rechazó OAuth Calendar: %s",
+                error_oauth,
+            )
+
+            return redirect(
+                "https://lumy-c1805.web.app/index.html"
+                "?calendar_error="
+                + error_oauth
+            )
+
+        if not code:
+            return "No se recibió authorization code.", 400
+
+        datos_state = obtener_state(
+            state,
+            "calendar",
+        )
+
+        if not datos_state:
+            return "State OAuth inválido o expirado.", 400
+
+        uid = datos_state["uid"]
+
+        tokens = intercambiar_code(
+            code,
+            "https://lumy-cerebro.onrender.com/oauth/calendar/callback",
+        )
+
+        guardar_oauth(
+            uid,
+            "calendar",
+            tokens,
+        )
+
+        print(
+            "Google Calendar conectado correctamente:",
+            uid,
+            flush=True,
+        )
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?calendar_connected=true"
+        )
+
+    except Exception:
+        app.logger.exception(
+            "ERROR EN CALLBACK CALENDAR"
+        )
+
+        return redirect(
+            "https://lumy-c1805.web.app/index.html"
+            "?calendar_error=true"
+        )
+
+
 @app.route("/oauth/calendar/token", methods=["GET"])
 def obtener_token_calendar():
     try:
@@ -646,22 +493,26 @@ def obtener_token_calendar():
 
         token = obtener_access_token(
             uid,
-            "calendar"
+            "calendar",
         )
 
         return jsonify({
             "access_token": token
         }), 200
 
-    except Exception as error:
+    except Exception:
         app.logger.exception(
             "ERROR OBTENIENDO TOKEN DE GOOGLE CALENDAR"
         )
 
         return jsonify({
-            "error": str(error)
+            "error": "No se pudo obtener el token de Calendar."
         }), 401
 
+
+# ==========================================
+# FORMULARIO DE CONTACTO
+# ==========================================
 
 @app.route("/contacto", methods=["POST"])
 def enviar_contacto():
@@ -747,6 +598,22 @@ def enviar_contacto():
         }), 502
 
 
+# ==========================================
+# MOSTRAR RUTAS
+# ==========================================
+
+print("\n========== RUTAS DE LUMY ==========")
+
+for ruta in app.url_map.iter_rules():
+    print(ruta)
+
+print("===================================\n")
+
+
+# ==========================================
+# INICIAR SERVIDOR
+# ==========================================
+
 if __name__ == "__main__":
     print("================================")
     print("       LUMY - API")
@@ -757,6 +624,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=5000,
-        debug=True
+        port=int(os.environ.get("PORT", 5000)),
+        debug=False,
     )
