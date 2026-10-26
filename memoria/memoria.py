@@ -1,7 +1,8 @@
 
 import logging
 
-from memoria.memoria_firebase import FirebaseMemoria
+
+from firebase.memoria_firebase import FirebaseMemoria
 
 
 class Memoria:
