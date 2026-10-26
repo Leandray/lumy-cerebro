@@ -620,7 +620,7 @@ if __name__ == "__main__":
     print("================================")
     print("Servidor iniciado.")
     print("Esperando conexiones...")
-    print("================================")
+    print("===============================")
 
     app.run(
         host="0.0.0.0",
