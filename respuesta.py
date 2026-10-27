@@ -271,13 +271,12 @@ class Respuesta:
             "anota ",
             "pon en mi calendario"
         ]
-es_creacion = any(
-    patron in texto
-    for patron in patrones_crear
-)
-
-if not es_creacion:
-    return None
+        es_creacion = any(
+            patron in texto
+            for patron in patrones_crear
+        )
+        if not es_creacion:
+            return None
 
     # ------------------------------------------------------
     # DETECTAR HORA: priorizar formatos como 20:00
