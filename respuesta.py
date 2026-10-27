@@ -224,8 +224,9 @@ class Respuesta:
     # DETECTAR ACCIONES DE CALENDARIO
     # ==========================================================
     
-    def detectar_consulta_calendario(self, mensaje):
+        def detectar_consulta_calendario(self, mensaje):
         texto = mensaje.lower().strip()
+
         patrones = [
             "qué eventos tengo",
             "que eventos tengo",
@@ -242,7 +243,7 @@ class Respuesta:
             "qué tengo agendado",
             "que tengo agendado"
         ]
-        
+
         if any(patron in texto for patron in patrones):
             return {
                 "tipo": "consultar_eventos",
@@ -250,15 +251,11 @@ class Respuesta:
                     "cantidad": 10
                 }
             }
-            return None
 
+        return None
     
     def detectar_accion_calendario(self, mensaje):
         texto = mensaje.lower().strip()
-        
-        # ------------------------------------------------------
-        # DETECTAR SI SE SOLICITA CREAR UN EVENTO
-        # ------------------------------------------------------
 
         patrones_crear = [
             "agenda ",
@@ -271,10 +268,12 @@ class Respuesta:
             "anota ",
             "pon en mi calendario"
         ]
+
         es_creacion = any(
             patron in texto
             for patron in patrones_crear
         )
+
         if not es_creacion:
             return None
 
