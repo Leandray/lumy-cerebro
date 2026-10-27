@@ -253,32 +253,31 @@ class Respuesta:
             return None
 
     
-def detectar_accion_calendario(self, mensaje):
-    texto = mensaje.lower().strip()
+    def detectar_accion_calendario(self, mensaje):
+        texto = mensaje.lower().strip()
+        
+        # ------------------------------------------------------
+        # DETECTAR SI SE SOLICITA CREAR UN EVENTO
+        # ------------------------------------------------------
 
-    # ------------------------------------------------------
-    # DETECTAR SI SE SOLICITA CREAR UN EVENTO
-    # ------------------------------------------------------
+        patrones_crear = [
+            "agenda ",
+            "agéndame ",
+            "agendame ",
+            "crea un evento",
+            "crear un evento",
+            "añade un evento",
+            "anota en mi calendario",
+            "anota ",
+            "pon en mi calendario"
+        ]
+es_creacion = any(
+    patron in texto
+    for patron in patrones_crear
+)
 
-    patrones_crear = [
-        "agenda ",
-        "agéndame ",
-        "agendame ",
-        "crea un evento",
-        "crear un evento",
-        "añade un evento",
-        "anota en mi calendario",
-        "anota ",
-        "pon en mi calendario"
-    ]
-
-    es_creacion = any(
-        patron in texto
-        for patron in patrones_crear
-    )
-
-    if not es_creacion:
-        return None
+if not es_creacion:
+    return None
 
     # ------------------------------------------------------
     # DETECTAR HORA: priorizar formatos como 20:00
