@@ -252,78 +252,126 @@ class Respuesta:
             }
             return None
 
-    def detectar_accion_calendario(self, mensaje):
+    
+def detectar_accion_calendario(self, mensaje):
+    texto = mensaje.lower().strip()
 
-        texto = mensaje.lower().strip()
+    # ------------------------------------------------------
+    # DETECTAR SI SE SOLICITA CREAR UN EVENTO
+    # ------------------------------------------------------
 
-        # ------------------------------------------------------
-        # CREAR EVENTO
-        # ------------------------------------------------------
+    patrones_crear = [
+        "agenda ",
+        "agéndame ",
+        "agendame ",
+        "crea un evento",
+        "crear un evento",
+        "añade un evento",
+        "anota en mi calendario",
+        "anota ",
+        "pon en mi calendario"
+    ]
 
-        patrones_crear = [
-            "agenda ",
-            "agéndame ",
-            "agendame ",
-            "crea un evento",
-            "crear un evento",
-            "añade un evento",
-            "anota en mi calendario",
-            "anota ",
-            "pon en mi calendario"
-        ]
+    es_creacion = any(
+        patron in texto
+        for patron in patrones_crear
+    )
 
-        es_creacion = any(
-            patron in texto
-            for patron in patrones_crear
-        )
+    if not es_creacion:
+        return None
 
-        if not es_creacion:
-            return None
+    # ------------------------------------------------------
+    # DETECTAR HORA: priorizar formatos como 20:00
+    # ------------------------------------------------------
 
-        # ------------------------------------------------------
-        # DETECTAR HORA
-        # ------------------------------------------------------
+    coincidencia_hora = re.search(
+        r'\b(\d{1,2}):(\d{2})\s*(am|pm)?\b'
+        r'|\b(\d{1,2})\s*(am|pm)\b',
+        texto
+    )
 
-        coincidencia_hora = re.search(
-            r'(\d{1,2})(?::(\d{2}))?\s*(?:de la\s*)?(am|pm)?',
-            texto
-        )
+    if not coincidencia_hora:
+        return None
 
-        if not coincidencia_hora:
-            return None
-
-        hora = int(
-            coincidencia_hora.group(1)
-        )
-
-        minutos = int(
-            coincidencia_hora.group(2) or 0
-        )
-
+    if coincidencia_hora.group(1) is not None:
+        hora = int(coincidencia_hora.group(1))
+        minutos = int(coincidencia_hora.group(2))
         periodo = coincidencia_hora.group(3)
+    else:
+        hora = int(coincidencia_hora.group(4))
+        minutos = 0
+        periodo = coincidencia_hora.group(5)
 
-        if periodo == "pm" and hora < 12:
-            hora += 12
+    # Convertir formato de 12 horas a 24 horas
+    if periodo == "pm" and 1 <= hora <= 11:
+        hora += 12
+    elif periodo == "am" and hora == 12:
+        hora = 0
 
-        if periodo == "am" and hora == 12:
-            hora = 0
+    # No permitir horas o minutos inválidos
+    if not (0 <= hora <= 23 and 0 <= minutos <= 59):
+        return None
 
-        # ------------------------------------------------------
-        # DETECTAR FECHA
-        # ------------------------------------------------------
+    # ------------------------------------------------------
+    # DETECTAR FECHA
+    # ------------------------------------------------------
 
-        ahora = datetime.now()
+    ahora = datetime.now()
+    fecha = None
 
-        if "mañana" in texto:
+    # Fecha explícita: 30 de octubre, 30 de octubre de 2026
+    meses = {
+        "enero": 1,
+        "febrero": 2,
+        "marzo": 3,
+        "abril": 4,
+        "mayo": 5,
+        "junio": 6,
+        "julio": 7,
+        "agosto": 8,
+        "septiembre": 9,
+        "setiembre": 9,
+        "octubre": 10,
+        "noviembre": 11,
+        "diciembre": 12
+    }
 
+    coincidencia_fecha = re.search(
+        r'\b(\d{1,2})\s+de\s+'
+        r'(enero|febrero|marzo|abril|mayo|junio|julio|'
+        r'agosto|septiembre|setiembre|octubre|noviembre|diciembre)'
+        r'(?:\s+de\s+(\d{4}))?\b',
+        texto
+    )
+
+    try:
+        if coincidencia_fecha:
+            dia = int(coincidencia_fecha.group(1))
+            mes = meses[coincidencia_fecha.group(2)]
+            anio = (
+                int(coincidencia_fecha.group(3))
+                if coincidencia_fecha.group(3)
+                else ahora.year
+            )
+
+            fecha = datetime(anio, mes, dia)
+
+            # Si no indicó el año y la fecha ya pasó,
+            # utilizar el próximo año.
+            if not coincidencia_fecha.group(3) and fecha.date() < ahora.date():
+                fecha = fecha.replace(year=fecha.year + 1)
+
+        elif "pasado mañana" in texto:
+            fecha = ahora + timedelta(days=2)
+
+        elif "mañana" in texto:
             fecha = ahora + timedelta(days=1)
 
         elif "hoy" in texto:
-
             fecha = ahora
 
         else:
-
+            # Sin fecha explícita: mañana, como en la versión original.
             fecha = ahora + timedelta(days=1)
 
         inicio = fecha.replace(
@@ -333,49 +381,48 @@ class Respuesta:
             microsecond=0
         )
 
-        # ------------------------------------------------------
-        # DURACIÓN POR DEFECTO
-        # ------------------------------------------------------
+    except ValueError:
+        # Una fecha imposible no debe provocar un HTTP 500.
+        return None
 
-        fin = inicio + timedelta(hours=1)
+    # ------------------------------------------------------
+    # DURACIÓN POR DEFECTO: UNA HORA
+    # ------------------------------------------------------
 
-        # ------------------------------------------------------
-        # OBTENER TÍTULO
-        # ------------------------------------------------------
+    fin = inicio + timedelta(hours=1)
 
-        titulo = "Evento"
+    # ------------------------------------------------------
+    # OBTENER TÍTULO DEL EVENTO
+    # ------------------------------------------------------
 
-        if (
-            "reunión" in texto
-            or "reunion" in texto
-        ):
+    titulo = "Evento"
 
-            titulo = "Reunión"
+    coincidencia_titulo = re.search(
+        r'(?:llamado|llamada|titulado|titulada)\s+'
+        r'["“]?([^"”,.]+)',
+        texto
+    )
 
-        elif (
-            "cumpleaños" in texto
-            or "cumpleanos" in texto
-        ):
+    if coincidencia_titulo:
+        titulo = coincidencia_titulo.group(1).strip()
+    elif "reunión" in texto or "reunion" in texto:
+        titulo = "Reunión"
+    elif "cumpleaños" in texto or "cumpleanos" in texto:
+        titulo = "Cumpleaños"
+    elif "cita" in texto:
+        titulo = "Cita"
+    elif "clase" in texto:
+        titulo = "Clase"
 
-            titulo = "Cumpleaños"
-
-        elif "cita" in texto:
-
-            titulo = "Cita"
-
-        elif "clase" in texto:
-
-            titulo = "Clase"
-
-        return {
-            "tipo": "crear_evento",
-            "datos": {
-                "titulo": titulo,
-                "inicio": inicio.isoformat(),
-                "fin": fin.isoformat(),
-                "descripcion": ""
-            }
+    return {
+        "tipo": "crear_evento",
+        "datos": {
+            "titulo": titulo,
+            "inicio": inicio.isoformat(),
+            "fin": fin.isoformat(),
+            "descripcion": ""
         }
+    }
 
     # ==========================================================
     # DETECTAR CALCULADORA
